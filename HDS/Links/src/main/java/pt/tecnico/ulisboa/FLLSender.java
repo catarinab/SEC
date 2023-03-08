@@ -16,12 +16,14 @@ public class FLLSender {
         System.out.println(FLLSender.class.getName());
     }
 
-    public void send(byte[] message) throws IOException {
-        while (true) {
+    public String send(byte[] message) throws IOException {
+        DatagramPacket SPacket = new DatagramPacket(message, message.length, this.address, this.port);
 
-            DatagramPacket DpSend = new DatagramPacket(message, message.length, this.address, this.port);
+        this.ds.send(SPacket);
 
-            ds.send(DpSend);
-        }
+        byte[] rData = new byte[1024];
+        DatagramPacket RPacket = new DatagramPacket(rData, rData.length);
+        this.ds.receive(RPacket);
+        return Utility.data(rData).toString();
     }
 }

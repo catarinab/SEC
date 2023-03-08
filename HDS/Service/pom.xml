@@ -24,7 +24,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>Links</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 

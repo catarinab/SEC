@@ -1,23 +1,31 @@
 package pt.tecnico.ulisboa;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
 public class Client {
 
-    private FLLSender FLLSender = null;
+    private final APL apl;
 
     public Client() throws SocketException, UnknownHostException {
-        this.FLLSender = new FLLSender("localhost", 1234);
+        this.apl = new APL("localhost", 1234, Utility.Type.CLIENT);
     }
 
-    public void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         System.out.println(Client.class.getName());
-        this.send("append");
+        Client client = new Client();
+        client.send("ola");
     }
 
-    public void send(String message) throws IOException {
-        this.FLLSender.send(message.getBytes());
+    public void send(String message) throws IOException, InterruptedException {
+        if(this.apl.send(message)){
+            System.out.println("recebeu ack");
+        }
+        else{
+            System.out.println("nao recebeu ack");
+        }
+
     }
 
 }
