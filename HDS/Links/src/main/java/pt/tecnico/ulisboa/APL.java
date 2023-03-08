@@ -7,6 +7,7 @@ import java.util.ArrayList;
 
 import org.json.CDL;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import pt.tecnico.ulisboa.Utility.Type;
 
 //por enquanto fica apenas PL
@@ -25,15 +26,18 @@ public class APL {
         JSONArray jsonArray = new JSONArray();
         jsonArray.put("messageID");
         jsonArray.put("append");
-        String csvData = this.messageCounter+","+message;
+        String csvData = this.messageCounter + "," + message;
 
         return this.stubbornLink.send(String.valueOf(CDL.toJSONArray(jsonArray,csvData)));
     }
 
     public String receive() throws IOException {
         String message = this.stubbornLink.receive();
-        if(!delivered.contains(message)) {
-            delivered.add(message);
+        JSONArray jsonArray = CDL.toJSONArray(message);
+        JSONObject jsonObject = jsonArray.getJSONObject(0);
+        String messageID = jsonObject.getString("messageID");
+        if(!delivered.contains(messageID)) {
+            delivered.add(messageID);
             System.out.println("mensagem repetida");
             return message;
         }
