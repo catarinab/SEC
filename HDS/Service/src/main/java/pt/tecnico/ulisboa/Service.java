@@ -1,5 +1,9 @@
 package pt.tecnico.ulisboa;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import javax.management.StringValueExp;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -19,5 +23,7 @@ public class Service {
     public void receive() throws IOException {
         String message = this.apl.receive();
         if(message == null) return;
+        JSONArray obj = new JSONArray(message);
+        System.out.println(obj);
     }
 }

@@ -6,10 +6,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import org.json.CDL;
-import org.json.Cookie;
 import org.json.JSONArray;
 import pt.tecnico.ulisboa.Utility.Type;
-import org.json.JSONObject;
 
 //por enquanto fica apenas PL
 public class APL {
