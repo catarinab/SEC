@@ -33,13 +33,11 @@ public class APL {
 
     public String receive() throws IOException {
         String message = this.stubbornLink.receive();
-        JSONArray jsonArray = CDL.toJSONArray(message);
-        JSONObject jsonObject = jsonArray.getJSONObject(0);
+        JSONObject jsonObject = (CDL.toJSONArray(message)).getJSONObject(0);
         String messageID = jsonObject.getString("messageID");
-        if(!delivered.contains(messageID)) {
+        if (!delivered.contains(messageID)) {
             delivered.add(messageID);
-            System.out.println("mensagem repetida");
-            return message;
+            return jsonObject.getString("append");
         }
         return null;
     }

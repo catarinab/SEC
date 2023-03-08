@@ -7,9 +7,10 @@ import javax.management.StringValueExp;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-public class Service {
 
+public class Service extends Thread {
     private final APL apl;
+
     public Service() throws SocketException, UnknownHostException {
         this.apl = new APL("localhost", 1234, Utility.Type.SERVER);
     }
@@ -22,8 +23,13 @@ public class Service {
 
     public void receive() throws IOException {
         String message = this.apl.receive();
-        if(message == null) return;
-        JSONArray obj = new JSONArray(message);
-        System.out.println(obj);
+        if (message == null) return;
+        System.out.println(message);
+        Service thread = new Service();
+        thread.start();
+    }
+
+    public void run() {
+        System.out.println("This code is running in a thread");
     }
 }
