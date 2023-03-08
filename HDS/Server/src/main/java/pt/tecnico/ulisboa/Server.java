@@ -1,8 +1,4 @@
-package java.pt.tecnico.ulisboa;
-
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
+package pt.tecnico.ulisboa;
 
 public class Server {
     public static void main(String[] args) {
