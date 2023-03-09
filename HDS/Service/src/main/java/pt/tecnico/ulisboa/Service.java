@@ -1,9 +1,5 @@
 package pt.tecnico.ulisboa;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import javax.management.StringValueExp;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -11,14 +7,29 @@ import java.net.UnknownHostException;
 public class Service extends Thread {
     private final APL apl;
 
-    public Service() throws SocketException, UnknownHostException {
-        this.apl = new APL("localhost", 1234, Utility.Type.SERVER);
+    public Service(int port) throws SocketException, UnknownHostException {
+        this.port = port;
+        this.apl = new APL("localhost", this.port, Utility.Type.SERVER);
     }
 
     public static void main(String[] args) throws IOException {
+        int port = 0;
+        if(args.length != 1) serviceUsage();
+        try {
+            port = Integer.parseInt(args[0]);
+        }
+        catch (NumberFormatException nfe) {
+            serviceUsage();
+        }
+        Service service = new Service(port);
         System.out.println(Service.class.getName());
-        Service service = new Service();
         while(true) service.receive();
+    }
+
+    public static void serviceUsage() {
+        System.out.println("Usage: Service port");
+        System.out.println("port is an int with a maximum of 5 chars");
+        System.exit(1);
     }
 
     public void receive() throws IOException {

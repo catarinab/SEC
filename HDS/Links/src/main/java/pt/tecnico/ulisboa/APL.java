@@ -13,7 +13,7 @@ import pt.tecnico.ulisboa.Utility.Type;
 //por enquanto fica apenas PL
 public class APL {
     private final StubbornLink stubbornLink;
-    private ArrayList<String> delivered = new ArrayList<String>();
+    private ArrayList<String> delivered = new ArrayList<>();
 
     private int messageCounter = 0;
 
@@ -23,12 +23,10 @@ public class APL {
 
     public boolean send(String message) throws IOException, InterruptedException {
         this.messageCounter++;
-        JSONArray jsonArray = new JSONArray();
-        jsonArray.put("messageID");
-        jsonArray.put("append");
-        String csvData = this.messageCounter + "," + message;
-
-        return this.stubbornLink.send(String.valueOf(CDL.toJSONArray(jsonArray,csvData)));
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("messageID", String.valueOf(this.messageCounter));
+        jsonObject.put("append", message);
+        return this.stubbornLink.send(jsonObject.toString());
     }
 
     public String receive() throws IOException {

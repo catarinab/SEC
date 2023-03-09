@@ -11,7 +11,7 @@
     <modules>
         <module>Service</module>
         <module>Client</module>
-        <module>Server</module>
+        <module>Broadcast</module>
         <module>Links</module>
     </modules>
 
@@ -20,5 +20,6 @@
         <maven.compiler.target>13</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
 
 </project>

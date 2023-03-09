@@ -19,7 +19,6 @@ public class FLLReceiver {
 
             this.ds.receive(RPacket);
 
-            System.out.println("Client: " + Utility.data(receive));
             DatagramPacket sendPacket = new DatagramPacket("ack".getBytes(), "ack".getBytes().length,
                                                             RPacket.getAddress(), RPacket.getPort());
             this.ds.send(sendPacket);
