@@ -17,7 +17,5 @@ public class Block {
         return "ola";
         //return crypt.sha256(previousHash + data);
     }
-    public static void main(String[] args) {
-        System.out.println("Hello world!");
-    }
+    
 }
