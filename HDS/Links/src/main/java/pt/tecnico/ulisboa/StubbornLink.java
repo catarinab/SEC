@@ -26,6 +26,8 @@ public class StubbornLink {
         }
     }
 
+    //as funcoes podem ser juntas
+
     public boolean send(String message) throws IOException, InterruptedException {
         if(this.type == Utility.Type.SERVER) return false;
         for (int attempts = 0; attempts < this.maxAttempts; attempts++) {

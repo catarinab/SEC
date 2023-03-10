@@ -6,10 +6,10 @@ import java.net.UnknownHostException;
 
 public class Client {
 
-    private final APL apl;
+    private final APLClient aplCLient;
 
     public Client() throws SocketException, UnknownHostException {
-        this.apl = new APL("localhost", 1234, Utility.Type.CLIENT);
+        this.aplCLient = new APLClient("localhost", 1234, Utility.Type.CLIENT);
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -19,7 +19,7 @@ public class Client {
     }
 
     public void send(String message) throws IOException, InterruptedException {
-        if(this.apl.send(message)){
+        if(this.aplCLient.send(message)){
             System.out.println("recebeu ack");
         }
         else{
