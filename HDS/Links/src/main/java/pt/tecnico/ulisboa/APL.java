@@ -10,7 +10,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import pt.tecnico.ulisboa.Utility.Type;
 
-//por enquanto fica apenas PL
+//Por enquanto fica apenas PL.
 public class APL {
     private final StubbornLink stubbornLink;
     private ArrayList<String> delivered = new ArrayList<>();
@@ -29,14 +29,20 @@ public class APL {
         return this.stubbornLink.send(jsonObject.toString());
     }
 
+    public boolean send(String message, String hostName, int port) throws IOException, InterruptedException {
+        return this.stubbornLink.send(message, hostName, port);
+    }
+
     public String receive() throws IOException {
         String message = this.stubbornLink.receive();
-        JSONObject jsonObject = (CDL.toJSONArray(message)).getJSONObject(0);
+        JSONObject jsonObject = new JSONObject(message);
+        //se msg for de cliente
         String messageID = jsonObject.getString("messageID");
         if (!delivered.contains(messageID)) {
             delivered.add(messageID);
             return jsonObject.getString("append");
         }
+        //se msg for de sv?
         return null;
     }
 }

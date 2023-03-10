@@ -5,12 +5,19 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class Service extends Thread {
-    private final APL apl;
+    private APL apl;
+    private int port;
+    private String message = null;
 
     public Service(int port) throws SocketException, UnknownHostException {
         this.port = port;
         this.apl = new APL("localhost", this.port, Utility.Type.SERVER);
     }
+
+    public Service(String message) {
+        this.message = message;
+    }
+
 
     public static void main(String[] args) throws IOException {
         int port = 0;
@@ -35,12 +42,11 @@ public class Service extends Thread {
     public void receive() throws IOException {
         String message = this.apl.receive();
         if (message == null) return;
-        System.out.println(message);
-        Service thread = new Service();
+        Service thread = new Service(message);
         thread.start();
     }
 
     public void run() {
-        System.out.println("This code is running in a thread");
+        System.out.println("This code is running in a thread with message: " + this.message);
     }
 }

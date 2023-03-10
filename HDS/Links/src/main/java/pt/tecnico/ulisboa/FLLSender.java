@@ -2,7 +2,7 @@ package pt.tecnico.ulisboa;
 import java.io.IOException;
 import java.net.*;
 
-public class FLLSender {
+public class FLLSender implements FLL{
     private final DatagramSocket ds;
     private final InetAddress address;
     private final int port;
@@ -16,7 +16,8 @@ public class FLLSender {
         System.out.println(FLLSender.class.getName());
     }
 
-    public String send(byte[] message) throws IOException {
+    @Override
+    public boolean send(byte[] message) throws IOException {
         DatagramPacket SPacket = new DatagramPacket(message, message.length, this.address, this.port);
 
         this.ds.send(SPacket);
@@ -24,6 +25,17 @@ public class FLLSender {
         byte[] rData = new byte[1024];
         DatagramPacket RPacket = new DatagramPacket(rData, rData.length);
         this.ds.receive(RPacket);
-        return Utility.data(rData).toString();
+        return Utility.data(rData).toString().equals("ack");
+    }
+
+    @Override
+    public boolean send(byte[] message, String hostname, int port) throws IOException {
+        return false;
+    }
+
+    //Doesnt receive messages besides ack
+    @Override
+    public String receive() throws IOException {
+        return null;
     }
 }
