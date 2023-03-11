@@ -25,8 +25,9 @@ public class Client {
         this.messageCounter++; //substituido por mac
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("messageID", String.valueOf(this.messageCounter));
-        jsonObject.put("append", message);
-        if(this.apl.send(jsonObject.toString())){
+        jsonObject.put("command", "append");
+        jsonObject.put("message", message);
+        if(this.apl.send(jsonObject.toString())) {
             System.out.println("recebeu ack");
         }
         else{

@@ -38,12 +38,14 @@ public class FLL {
         DatagramPacket RPacket = new DatagramPacket(receive, receive.length);
 
         this.ds.receive(RPacket);
-
-        DatagramPacket sendPacket = new DatagramPacket("ack".getBytes(), "ack".getBytes().length,
-                RPacket.getAddress(), RPacket.getPort());
-        //Send ack
-        this.ds.send(sendPacket);
-        return Utility.data(receive).toString();
+        String message = Utility.data(receive).toString();
+        if(!message.equals("ack")) {
+            DatagramPacket sendPacket = new DatagramPacket("ack".getBytes(), "ack".getBytes().length,
+                    RPacket.getAddress(), RPacket.getPort());
+            //Send ack
+            this.ds.send(sendPacket);
+        }
+        return message;
     }
 
 }

@@ -3,46 +3,74 @@ package pt.tecnico.ulisboa;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Scanner;
 
 public class Service extends Thread {
     private APL apl;
+    private String command = null;
     private String message = null;
     private Broadcast broadcast;
     private boolean leader = false;
     private ArrayList<String> delivered = new ArrayList<>();
 
-    public Service(int port) throws SocketException, UnknownHostException {
-        this.apl = new APL("localhost", port, Utility.Type.SERVER);
-        if(port == 1234) this.leader = true;
-        List<Entry<String,Integer>> processes= new java.util.ArrayList<>();
-        processes.add(new AbstractMap.SimpleEntry<>("localhost", 1234));
-        processes.add(new AbstractMap.SimpleEntry<>("localhost", 1235));
-        processes.add(new AbstractMap.SimpleEntry<>("localhost", 1236));
-        this.broadcast = new Broadcast(new AbstractMap.SimpleEntry<>("localhost", port),
+    public Service(String hostname, int port, List<Entry<String,Integer>> processes, boolean leader) throws SocketException, UnknownHostException {
+        this.apl = new APL(hostname, port, Utility.Type.SERVER);
+        this.leader = leader;
+        this.broadcast = new Broadcast(new AbstractMap.SimpleEntry<>(hostname, port),
                                         processes, this.apl);
     }
 
-    public Service(String message) {
+    public Service(String command, String message) {
+        this.command = command;
         this.message = message;
     }
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        String hostname = null;
         int port = 0;
-        if(args.length != 1) serviceUsage();
+        if(args.length != 2) serviceUsage();
         try {
-            port = Integer.parseInt(args[0]);
+            hostname = args[0];
+            port = Integer.parseInt(args[1]);
         }
         catch (NumberFormatException nfe) {
             serviceUsage();
         }
-        Service service = new Service(port);
+
+        List<Entry<String,Integer>> processes= new java.util.ArrayList<>();
+        boolean leader = false;
+        try {
+            File file = new File("/home/rita/SEC/HDS/processes.txt");
+            Scanner scanner = new Scanner(file);
+            int lineCounter = 0;
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                String[] splited = line.split("\\s+");
+                String processHostname = splited[0];
+                int processPort = Integer.parseInt(splited[1]);
+                if (processHostname.equals(hostname) && processPort == port) {
+                    if (lineCounter == 0) leader = true;
+                    continue;
+                }
+                processes.add(new AbstractMap.SimpleEntry<>(processHostname, processPort));
+                lineCounter++;
+            }
+            scanner.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("File does not exist.");
+            e.printStackTrace();
+        }
+
+        Service service = new Service(hostname, port, processes, leader);
         System.out.println(Service.class.getName());
         while(true) service.receive();
     }
@@ -54,31 +82,24 @@ public class Service extends Thread {
     }
 
     public void receive() throws IOException {
-        String command = null;
         String message = this.apl.receive();
+
         System.out.println(message);
-        /*
+        if(message.equals("ack")) return;
+
         try {
             JSONObject jsonObject = new JSONObject(message);
-            String key = jsonObject.keys().next();
-            if (key.equals("messageID")) {
-                String messageID = jsonObject.getString("messageID");
-                if (!delivered.contains(messageID)) {
-                    delivered.add(messageID);
-                    command = jsonObject.getString("append");
-                }
+            String messageID = jsonObject.getString("messageID");
+            if (!delivered.contains(messageID)) {
+                delivered.add(messageID);
             }
-            else if (key.equals("serverID")) {
-
-            }
+            else return;
+            Service thread = new Service(jsonObject.getString("command"), jsonObject.getString("message"));
+            thread.start();
         }
-        catch(Exception e){
+        catch(Exception e) {
             e.printStackTrace();
         }
-        if (command == null) return;
-        Service thread = new Service(command);
-        thread.start();
-        */
 
     }
 

@@ -15,9 +15,9 @@ public class Broadcast {
         this.apl = apl;
     }
 
-    public void doBroadcast() throws IOException, InterruptedException {
+    public void doBroadcast(String message) throws IOException, InterruptedException {
         for(Entry<String, Integer> process: processes) {
-            if(this.host != process) apl.send("ola", process.getKey(), process.getValue());
+            apl.send(message, process.getKey(), process.getValue());
         }
     }
 }
