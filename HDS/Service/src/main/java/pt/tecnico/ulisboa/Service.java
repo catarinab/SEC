@@ -12,24 +12,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Scanner;
+import pt.tecnico.ulisboa.Utility;
 
 public class Service extends Thread {
+    private Entry<String,Integer> processID;
     private APL apl;
-    private String command = null;
-    private String message = null;
     private Broadcast broadcast;
     private boolean leader = false;
     private ArrayList<String> delivered = new ArrayList<>();
+    private int messageCounter = 0;
+    private int consensusCounter = 0;
+
+    private JSONObject message = null;
 
     public Service(String hostname, int port, List<Entry<String,Integer>> processes, boolean leader) throws SocketException, UnknownHostException {
-        this.apl = new APL(hostname, port, Utility.Type.SERVER);
+        processID = new AbstractMap.SimpleEntry<>(hostname, port);
+        this.apl = new APL(hostname, port);
         this.leader = leader;
-        this.broadcast = new Broadcast(new AbstractMap.SimpleEntry<>(hostname, port),
-                                        processes, this.apl);
+        this.broadcast = new Broadcast(processes, this.apl);
     }
 
-    public Service(String command, String message) {
-        this.command = command;
+    public Service(Entry<String,Integer> processID, APL apl, Broadcast broadcast, boolean leader, ArrayList<String> delivered, int messageCounter, int consensusCounter, JSONObject message) {
+        this.processID = processID;
+        this.apl = apl;
+        this.broadcast = broadcast;
+        this.leader = leader;
+        this.delivered = delivered;
+        this.messageCounter = messageCounter;
+        this.consensusCounter = consensusCounter;
         this.message = message;
     }
 
@@ -46,28 +56,14 @@ public class Service extends Thread {
             serviceUsage();
         }
 
-        List<Entry<String,Integer>> processes= new java.util.ArrayList<>();
+        List<Entry<String,Integer>> processes = Utility.readProcesses("/home/rita/SEC/HDS/services.txt");
         boolean leader = false;
-        try {
-            File file = new File("/home/rita/SEC/HDS/processes.txt");
-            Scanner scanner = new Scanner(file);
-            int lineCounter = 0;
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine();
-                String[] splited = line.split("\\s+");
-                String processHostname = splited[0];
-                int processPort = Integer.parseInt(splited[1]);
-                if (processHostname.equals(hostname) && processPort == port) {
-                    if (lineCounter == 0) leader = true;
-                    continue;
-                }
-                processes.add(new AbstractMap.SimpleEntry<>(processHostname, processPort));
-                lineCounter++;
+        for (int i = 0; i < processes.size(); i++) {
+            if (processes.get(i).getKey().equals(hostname) && processes.get(i).getValue() == port) {
+                if (i == 0) leader = true;
+                processes.remove(i);
+                break;
             }
-            scanner.close();
-        } catch (FileNotFoundException e) {
-            System.out.println("File does not exist.");
-            e.printStackTrace();
         }
 
         Service service = new Service(hostname, port, processes, leader);
@@ -94,7 +90,7 @@ public class Service extends Thread {
                 delivered.add(messageID);
             }
             else return;
-            Service thread = new Service(jsonObject.getString("command"), jsonObject.getString("message"));
+            Service thread = new Service(this.processID, this.apl, this.broadcast, this.leader, this.delivered, this.messageCounter, this.consensusCounter, jsonObject);
             thread.start();
         }
         catch(Exception e) {
@@ -105,5 +101,16 @@ public class Service extends Thread {
 
     public void run() {
         System.out.println("This code is running in a thread with message: " + this.message);
+        if (this.message.getString("command").equals("append")) {
+            IstanbulBFT istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast);
+            this.messageCounter++;
+            this.consensusCounter++;
+            try {
+                istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("message"), this.messageCounter);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

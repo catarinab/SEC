@@ -12,22 +12,11 @@ public class StubbornLink {
     private final int maxAttempts;
     private final int maxDelay;
 
-    public StubbornLink(String hostname, int port, int maxAttempts, int maxDelay, Utility.Type type)
+    public StubbornLink(String hostname, int port, int maxAttempts, int maxDelay)
             throws SocketException, UnknownHostException {
         this.maxAttempts = maxAttempts;
         this.maxDelay = maxDelay;
-        this.fll = new FLL(hostname, port, type);
-    }
-
-    //as funcoes podem ser juntas
-
-    public boolean send(String message) throws IOException, InterruptedException {
-        for (int attempts = 0; attempts < this.maxAttempts; attempts++) {
-            if(this.fll.send(message.getBytes())) return true;
-            System.out.println("nao deu ack");
-            TimeUnit.SECONDS.sleep(this.maxDelay);
-        }
-        return false;
+        this.fll = new FLL(hostname, port);
     }
 
     public void send(String message, String hostName, int port) throws IOException, InterruptedException {
