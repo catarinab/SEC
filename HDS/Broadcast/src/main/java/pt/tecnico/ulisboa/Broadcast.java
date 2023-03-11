@@ -6,17 +6,18 @@ import java.util.List;
 
 public class Broadcast {
     private final List<Entry<String,Integer>> processes= new java.util.ArrayList<>();
+    private final Entry<String, Integer> host;
+    private final APL apl;
 
-    private final APLServer aplServer;
-
-    public Broadcast(Entry<String, Integer> host, List<Entry<String,Integer>> processes, APLServer aplServer) {
+    public Broadcast(Entry<String, Integer> host, List<Entry<String,Integer>> processes, APL apl) {
         this.processes.addAll(processes);
-        this.aplServer = aplServer;
+        this.host = host;
+        this.apl = apl;
     }
 
     public void doBroadcast() throws IOException, InterruptedException {
         for(Entry<String, Integer> process: processes) {
-            aplServer.send("ola", process.getKey(), process.getValue());
+            if(this.host != process) apl.send("ola", process.getKey(), process.getValue());
         }
     }
 }

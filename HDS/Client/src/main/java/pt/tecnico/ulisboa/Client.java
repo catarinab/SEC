@@ -1,15 +1,18 @@
 package pt.tecnico.ulisboa;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class Client {
 
-    private final APLClient aplCLient;
+    private final APL apl;
+    private int messageCounter = 0;
 
     public Client() throws SocketException, UnknownHostException {
-        this.aplCLient = new APLClient("localhost", 1234, Utility.Type.CLIENT);
+        this.apl = new APL("localhost", 1234, Utility.Type.CLIENT);
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -19,7 +22,11 @@ public class Client {
     }
 
     public void send(String message) throws IOException, InterruptedException {
-        if(this.aplCLient.send(message)){
+        this.messageCounter++; //substituido por mac
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("messageID", String.valueOf(this.messageCounter));
+        jsonObject.put("append", message);
+        if(this.apl.send(jsonObject.toString())){
             System.out.println("recebeu ack");
         }
         else{
