@@ -10,7 +10,7 @@ public class StubbornLink {
     private final FLL fll;
     private final int maxAttempts;
     private final int maxDelay;
-    private ConcurrentHashMap<String, String> ACKs;
+    private ConcurrentHashMap<String, String> ACKs = new ConcurrentHashMap<String, String>();
 
     public StubbornLink(String hostname, int port, int maxAttempts, int maxDelay)
             throws SocketException, UnknownHostException {
@@ -22,10 +22,10 @@ public class StubbornLink {
     public void send(String message, String hostName, int port) throws IOException, InterruptedException {
         for (int attempts = 0; attempts < this.maxAttempts; attempts++) {
             String messageID = Utility.getMessageIdFromJson(message);
-            /*if(ACKs.containsKey(messageID)) {
+            if(ACKs.containsKey(messageID)) {
                 ACKs.remove(messageID);
                 return;
-            }*/
+            }
             String messageIDReceived = Utility.getMessageIdFromJson(this.fll.send(message.getBytes(), hostName, port));
             if(messageID.equals(messageIDReceived)) return;
             else if(messageIDReceived != null) ACKs.put(messageIDReceived, "ack");

@@ -9,7 +9,7 @@ public class APL {
     private final StubbornLink stubbornLink;
 
     public APL(String hostname, int port) throws SocketException, UnknownHostException {
-        this.stubbornLink = new StubbornLink(hostname, port, 10, 2);
+        this.stubbornLink = new StubbornLink(hostname, port, 10, 1);
     }
 
     public void send(String message, String hostName, int port) throws IOException, InterruptedException {
