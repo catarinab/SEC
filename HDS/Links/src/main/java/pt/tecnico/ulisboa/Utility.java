@@ -23,9 +23,9 @@ public class Utility {
         return ret;
     }
 
-    public static String getMessageIdFromJson(String message) {
+    public static String getMacFromJson(String message) {
         JSONObject jsonObject = new JSONObject(message);
-        return jsonObject.getString("messageID");
+        return jsonObject.getString("mac");
     }
 
     public static Entry<Integer, List<Entry<String,Integer>>> readProcesses(String path) {

@@ -101,13 +101,13 @@ public class Service extends Thread {
         String message = this.apl.receive();
 
         System.out.println(message);
-        if(message.equals("ack")) return;
 
         try {
             JSONObject jsonObject = new JSONObject(message);
-            String messageID = jsonObject.getString("messageID");
-            if (!delivered.contains(messageID)) {
-                delivered.add(messageID);
+            if(jsonObject.getString("command").equals("ack")) return;
+            String macResultMessage = jsonObject.getString("mac");
+            if (!delivered.contains(macResultMessage)) {
+                delivered.add(macResultMessage);
             }
             else return;
             Service thread = new Service(this, jsonObject);
@@ -122,6 +122,7 @@ public class Service extends Thread {
     public void run() {
         System.out.println("This code is running in a thread with message: " + this.message);
         String command = this.message.getString("command");
+        //if(command.equals("ack")) return;
         if (command.equals("append")) {
             String keyBase64 = this.message.getString("key");
             String macResultMessage = this.message.getString("mac");
@@ -133,12 +134,7 @@ public class Service extends Thread {
                 Mac mac = Mac.getInstance("HmacSHA256");
                 mac.init(clientKey);
                 byte[] macResult = mac.doFinal(bytes);
-                if(!macResultMessage.equals(Arrays.toString((macResult)))){
-                    System.out.println(macResultMessage);
-                    System.out.println(Arrays.toString((macResult)));
-                    System.out.println("OLA");
-                    return;
-                }
+                if(!macResultMessage.equals(Arrays.toString((macResult)))) return;
             } catch (NoSuchAlgorithmException | InvalidKeyException e) {
                 throw new RuntimeException(e);
             }
@@ -163,6 +159,8 @@ public class Service extends Thread {
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
             this.messageCounter++;
             try {
+                System.out.println(this.message);
+                System.out.println(this.consensusInstances);
                 this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command, this.message.getString("inputValue"), this.messageCounter);
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);

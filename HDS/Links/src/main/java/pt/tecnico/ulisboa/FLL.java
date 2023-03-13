@@ -37,7 +37,7 @@ public class FLL {
         if(!message.equals("ack")) {
             try {
                 JSONObject jsonObject = new JSONObject();
-                jsonObject.put("messageID", Utility.getMessageIdFromJson(message));
+                jsonObject.put("mac", Utility.getMacFromJson(message));
                 jsonObject.put("command", "ack");
                 DatagramPacket sendPacket = new DatagramPacket(jsonObject.toString().getBytes(),
                         jsonObject.toString().getBytes().length, RPacket.getAddress(), RPacket.getPort());

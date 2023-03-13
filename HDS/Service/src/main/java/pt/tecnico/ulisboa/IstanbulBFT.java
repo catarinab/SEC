@@ -46,14 +46,11 @@ public class IstanbulBFT {
 
         if (this.processLeader) {
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("messageID", this.processID.getKey() + String.valueOf(this.processID.getValue()) +
-                            messageCounter);
             jsonObject.put("command", "pre-prepare");
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", message);
-            byte[] bytes = message.getBytes();
-            byte[] macResult = mac.doFinal(bytes);
+            byte[] macResult = mac.doFinal(message.getBytes());
             jsonObject.put("mac", Arrays.toString(macResult));
             jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
             this.broadcast.doBroadcast(jsonObject.toString());
@@ -65,12 +62,14 @@ public class IstanbulBFT {
         if (command.equals("pre-prepare")) {
             //timerRound
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("messageID", this.processID.getKey() + String.valueOf(this.processID.getValue()) +
-                    messageCounter);
             jsonObject.put("command", "prepare");
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", inputValue);
+
+            byte[] macResult = mac.doFinal(inputValue.getBytes());
+            jsonObject.put("mac", Arrays.toString(macResult));
+            jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
             this.broadcast.doBroadcast(jsonObject.toString());
         }
         else if (command.equals("prepare") && !commitPhase) {
@@ -88,8 +87,9 @@ public class IstanbulBFT {
                     this.processValue = inputValue;
 
                     JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("messageID", this.processID.getKey() + String.valueOf(this.processID.getValue()) +
-                            messageCounter);
+                    byte[] macResult = mac.doFinal(inputValue.getBytes());
+                    jsonObject.put("mac", Arrays.toString(macResult));
+                    jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
                     jsonObject.put("command", "commit");
                     jsonObject.put("consensusID", this.consensusID);
                     //currentRound

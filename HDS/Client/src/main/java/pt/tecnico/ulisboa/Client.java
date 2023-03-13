@@ -53,11 +53,9 @@ public class Client {
     public void send(String message) throws IOException, InterruptedException {
         this.messageCounter++; //substituido por MAC
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("messageID", this.processID.getKey() + this.processID.getValue() + this.messageCounter);
         jsonObject.put("command", "append");
         jsonObject.put("message", message);
-        byte[] bytes = message.getBytes();
-        byte[] macResult = mac.doFinal(bytes);
+        byte[] macResult = mac.doFinal(message.getBytes());
         jsonObject.put("mac", Arrays.toString(macResult));
         jsonObject.put("key", Base64.getEncoder().encodeToString(this.key.getEncoded()));
         this.broadcast.doBroadcast(jsonObject.toString());

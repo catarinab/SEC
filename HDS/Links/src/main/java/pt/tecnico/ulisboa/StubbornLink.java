@@ -21,12 +21,12 @@ public class StubbornLink {
 
     public void send(String message, String hostName, int port) throws IOException, InterruptedException {
         for (int attempts = 0; attempts < this.maxAttempts; attempts++) {
-            String messageID = Utility.getMessageIdFromJson(message);
+            String messageID = Utility.getMacFromJson(message);
             if(ACKs.containsKey(messageID)) {
                 ACKs.remove(messageID);
                 return;
             }
-            String messageIDReceived = Utility.getMessageIdFromJson(this.fll.send(message.getBytes(), hostName, port));
+            String messageIDReceived = Utility.getMacFromJson(this.fll.send(message.getBytes(), hostName, port));
             if(messageID.equals(messageIDReceived)) return;
             else if(messageIDReceived != null) ACKs.put(messageIDReceived, "ack");
             System.out.println("nao deu ack");
