@@ -23,6 +23,8 @@ public class Service extends Thread {
     private boolean leader = false;
     private ArrayList<String> delivered = new ArrayList<>();
     private int messageCounter = 0;
+    private int byzantineProcesses = 0;
+    private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private int consensusCounter = 0;
     private final Mac mac = Mac.getInstance("HmacSHA256");
     private final Key serverKey;
@@ -84,7 +86,7 @@ public class Service extends Thread {
             }
         }
 
-        Service service = new Service(hostname, port, processes, leader);
+        Service service = new Service(hostname, port, byzantineProcesses, processes, leader);
         System.out.println(Service.class.getName());
         while(true) service.receive();
     }
@@ -119,15 +121,51 @@ public class Service extends Thread {
 
     public void run() {
         System.out.println("This code is running in a thread with message: " + this.message);
-        if (this.message.getString("command").equals("append")) {
-            IstanbulBFT istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast);
+        String command = this.message.getString("command");
+        if (command.equals("append")) {
+            String keyBase64 = this.message.getString("key");
+            String macResultMessage = this.message.getString("mac");
+            String messageContent = this.message.getString("message");
+            byte[] encodedKey = Base64.getDecoder().decode(keyBase64);
+            Key clientKey = new SecretKeySpec(encodedKey,0,encodedKey.length, "DES");
+            byte[] bytes = messageContent.getBytes();
+            try {
+                Mac mac = Mac.getInstance("HmacSHA256");
+                mac.init(clientKey);
+                byte[] macResult = mac.doFinal(bytes);
+                if(!macResultMessage.equals(Arrays.toString((macResult)))){
+                    System.out.println(macResultMessage);
+                    System.out.println(Arrays.toString((macResult)));
+                    System.out.println("OLA");
+                    return;
+                }
+            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+                throw new RuntimeException(e);
+            }
+
+            IstanbulBFT istanbulBFT = null;
+            try {
+                istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast,
+                        this.byzantineProcesses, this.serverKey);
+            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+                throw new RuntimeException(e);
+            }
             this.messageCounter++;
             this.consensusCounter++;
             try {
                 istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("message"), this.messageCounter);
+                consensusInstances.put(consensusCounter, istanbulBFT);
             }
             catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+        else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
+            this.messageCounter++;
+            try {
+                this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command, this.message.getString("inputValue"), this.messageCounter);
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
     }

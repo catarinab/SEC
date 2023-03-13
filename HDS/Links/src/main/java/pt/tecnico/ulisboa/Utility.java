@@ -35,6 +35,7 @@ public class Utility {
         try {
             File file = new File(path);
             Scanner scanner = new Scanner(file);
+            byzantineProcesses = Integer.parseInt(scanner.nextLine());
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 String[] splited = line.split("\\s+");
@@ -45,11 +46,6 @@ public class Utility {
             System.out.println("File does not exist.");
             e.printStackTrace();
         }
-        return processes;
-    }
-
-    enum Type {
-        CLIENT,
-        SERVER
+        return new AbstractMap.SimpleEntry<>(byzantineProcesses, processes);
     }
 }
