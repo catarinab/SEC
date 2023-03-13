@@ -3,7 +3,6 @@ package pt.tecnico.ulisboa;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import pt.tecnico.ulisboa.Utility.Type;
 
 //Por enquanto fica apenas PL.
 public class APL {

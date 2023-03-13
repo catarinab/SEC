@@ -1,5 +1,8 @@
 package pt.tecnico.ulisboa;
 
+import org.json.JSONObject;
+
+import java.net.DatagramPacket;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +23,13 @@ public class Utility {
         return ret;
     }
 
-    public static List<Entry<String,Integer>> readProcesses(String path) {
+    public static String getMessageIdFromJson(String message) {
+        JSONObject jsonObject = new JSONObject(message);
+        return jsonObject.getString("messageID");
+    }
+
+    public static Entry<Integer, List<Entry<String,Integer>>> readProcesses(String path) {
+        int byzantineProcesses = 0;
         List<Entry<String,Integer>> processes = new java.util.ArrayList<>();
         boolean leader = false;
         try {

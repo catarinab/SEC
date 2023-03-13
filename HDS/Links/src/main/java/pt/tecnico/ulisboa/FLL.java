@@ -1,7 +1,11 @@
 package pt.tecnico.ulisboa;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.*;
+
+import pt.tecnico.ulisboa.Utility;
 
 public class FLL {
 
@@ -10,11 +14,17 @@ public class FLL {
         this.ds = new DatagramSocket(port);
     }
 
-    public boolean send(byte[] message, String hostName, int port) throws IOException {
+    public String send(byte[] message, String hostName, int port) throws IOException {
         InetAddress address = InetAddress.getByName(hostName);
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, address, port);
         this.ds.send(sendPacket);
-        return true;
+        byte[] receive = new byte[65535];
+
+        DatagramPacket RPacket = new DatagramPacket(receive, receive.length);
+
+        this.ds.receive(RPacket);
+
+        return Utility.data(receive).toString();
     }
 
     public String receive() throws IOException {
@@ -25,10 +35,18 @@ public class FLL {
         this.ds.receive(RPacket);
         String message = Utility.data(receive).toString();
         if(!message.equals("ack")) {
-            DatagramPacket sendPacket = new DatagramPacket("ack".getBytes(), "ack".getBytes().length,
-                    RPacket.getAddress(), RPacket.getPort());
-            //Send ack
-            this.ds.send(sendPacket);
+            try {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("messageID", Utility.getMessageIdFromJson(message));
+                jsonObject.put("command", "ack");
+                DatagramPacket sendPacket = new DatagramPacket(jsonObject.toString().getBytes(),
+                        jsonObject.toString().getBytes().length, RPacket.getAddress(), RPacket.getPort());
+                //Send ack
+                this.ds.send(sendPacket);
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+            }
         }
         return message;
     }
