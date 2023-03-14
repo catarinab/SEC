@@ -1,5 +1,7 @@
 package pt.tecnico.ulisboa;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -22,14 +24,17 @@ public class StubbornLink {
     public void send(String message, String hostName, int port) throws IOException, InterruptedException {
         for (int attempts = 0; attempts < this.maxAttempts; attempts++) {
             String messageID = Utility.getMacFromJson(message);
+
             if(ACKs.containsKey(messageID)) {
                 ACKs.remove(messageID);
                 return;
             }
-            String messageIDReceived = Utility.getMacFromJson(this.fll.send(message.getBytes(), hostName, port));
-            if(messageID.equals(messageIDReceived)) return;
+            String messageReceived = this.fll.send(message.getBytes(), hostName, port);
+            String messageIDReceived = Utility.getMacFromJson(messageReceived);
+            JSONObject jsonObject = new JSONObject(messageReceived);
+            String command = jsonObject.getString("command");
+            if(messageID.equals(messageIDReceived) && command.equals("ack")) return;
             else if(messageIDReceived != null) ACKs.put(messageIDReceived, "ack");
-            System.out.println("nao deu ack");
             TimeUnit.SECONDS.sleep(this.maxDelay);
         }
     }

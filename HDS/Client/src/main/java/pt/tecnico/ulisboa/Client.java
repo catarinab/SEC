@@ -22,7 +22,6 @@ public class Client {
     private final Entry<String,Integer> processID;
     private final APL apl;
     private final Broadcast broadcast;
-    private int messageCounter = 0;
     private final Mac mac = Mac.getInstance("HmacSHA256");
     private final Key key;
     private static final String RSA = "DES";
@@ -47,11 +46,11 @@ public class Client {
 
         System.out.println(Client.class.getName());
         Client client = new Client(processes);
-        client.send("hey pu$$y queen");
+        client.send("ola");
     }
 
     public void send(String message) throws IOException, InterruptedException {
-        this.messageCounter++; //substituido por MAC
+
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("command", "append");
         jsonObject.put("message", message);

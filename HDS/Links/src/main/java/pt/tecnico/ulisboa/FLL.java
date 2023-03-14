@@ -22,7 +22,19 @@ public class FLL {
 
         DatagramPacket RPacket = new DatagramPacket(receive, receive.length);
 
-        this.ds.receive(RPacket);
+        this.ds.setSoTimeout(1000);
+        try {
+            this.ds.receive(RPacket);
+            this.ds.setSoTimeout(0);
+        }
+        catch (SocketTimeoutException e) {
+            // timeout exception.
+            System.out.println("Timeout reached!!! " + e);
+            this.ds.setSoTimeout(0);
+            return new JSONObject().toString();
+        }
+
+
 
         return Utility.data(receive).toString();
     }
@@ -34,19 +46,17 @@ public class FLL {
 
         this.ds.receive(RPacket);
         String message = Utility.data(receive).toString();
-        if(!message.equals("ack")) {
-            try {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("mac", Utility.getMacFromJson(message));
-                jsonObject.put("command", "ack");
-                DatagramPacket sendPacket = new DatagramPacket(jsonObject.toString().getBytes(),
-                        jsonObject.toString().getBytes().length, RPacket.getAddress(), RPacket.getPort());
-                //Send ack
-                this.ds.send(sendPacket);
-            }
-            catch(Exception e) {
-                e.printStackTrace();
-            }
+        try {
+            JSONObject jsonObjectReceived = new JSONObject(message);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("mac", Utility.getMacFromJson(message));
+            jsonObject.put("command", "ack");
+            DatagramPacket sendPacket = new DatagramPacket(jsonObject.toString().getBytes(),
+                    jsonObject.toString().getBytes().length, RPacket.getAddress(), RPacket.getPort());
+            this.ds.send(sendPacket);
+        }
+        catch(Exception e) {
+            e.printStackTrace();
         }
         return message;
     }

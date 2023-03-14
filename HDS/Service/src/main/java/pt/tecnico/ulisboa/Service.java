@@ -14,6 +14,7 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import javax.crypto.Mac;
 
 public class Service extends Thread {
@@ -100,8 +101,6 @@ public class Service extends Thread {
     public void receive() throws IOException {
         String message = this.apl.receive();
 
-        System.out.println(message);
-
         try {
             JSONObject jsonObject = new JSONObject(message);
             if(jsonObject.getString("command").equals("ack")) return;
@@ -122,7 +121,6 @@ public class Service extends Thread {
     public void run() {
         System.out.println("This code is running in a thread with message: " + this.message);
         String command = this.message.getString("command");
-        //if(command.equals("ack")) return;
         if (command.equals("append")) {
             String keyBase64 = this.message.getString("key");
             String macResultMessage = this.message.getString("mac");
@@ -150,7 +148,7 @@ public class Service extends Thread {
             this.consensusCounter++;
             try {
                 istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("message"), this.messageCounter);
-                consensusInstances.put(consensusCounter, istanbulBFT);
+                this.consensusInstances.put(consensusCounter, istanbulBFT);
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -161,8 +159,20 @@ public class Service extends Thread {
             try {
                 System.out.println(this.message);
                 System.out.println(this.consensusInstances);
-                this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command, this.message.getString("inputValue"), this.messageCounter);
-            } catch (IOException | InterruptedException e) {
+                for (int i = 0; i < 3; i++) {
+                    try {
+                        System.out.println(this.consensusInstances);
+                        this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command,
+                                this.message.getString("inputValue"), this.messageCounter);
+                        break;
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                        TimeUnit.SECONDS.sleep(1);
+                    }
+                }
+            }
+            catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
