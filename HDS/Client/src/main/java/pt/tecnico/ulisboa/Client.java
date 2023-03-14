@@ -9,10 +9,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -65,11 +62,8 @@ public class Client extends Thread{
     public void send(String message) throws IOException, InterruptedException {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("command", "append");
-        jsonObject.put("message", message);
-        byte[] macResult = mac.doFinal(message.getBytes());
-        jsonObject.put("mac", Arrays.toString(macResult));
-        jsonObject.put("key", Base64.getEncoder().encodeToString(this.key.getEncoded()));
-        this.broadcast.doBroadcast(jsonObject.toString());
+        jsonObject.put("inputValue", message);
+        this.broadcast.doBroadcast(message + "append", jsonObject.toString());
     }
     public void run() {
         for(int received = 0; received < 4; received++){

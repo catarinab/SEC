@@ -30,14 +30,12 @@ public class IstanbulBFT {
     private String processValue;
     //private Timer timer = null;
 
-    public IstanbulBFT(Entry<String,Integer> processID, boolean processLeader, Broadcast broadcast, int byzantineProcesses,
-                       Key serverKey) throws NoSuchAlgorithmException, InvalidKeyException {
+    public IstanbulBFT(Entry<String,Integer> processID, boolean processLeader, Broadcast broadcast, int byzantineProcesses)
+            throws NoSuchAlgorithmException, InvalidKeyException {
         this.processLeader = processLeader;
         this.processID = processID;
         this.broadcast = broadcast;
         this.byzantineProcesses = byzantineProcesses;
-        this.serverKey = serverKey;
-        mac.init(serverKey);
     }
 
     public void algorithm1(int consensusCounter, String message, int messageCounter) throws IOException, InterruptedException {
@@ -50,10 +48,7 @@ public class IstanbulBFT {
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", message);
-            byte[] macResult = mac.doFinal((message + "preprepare").getBytes());
-            jsonObject.put("mac", Arrays.toString(macResult));
-            jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
-            this.broadcast.doBroadcast(jsonObject.toString());
+            this.broadcast.doBroadcast(message + "preprepare", jsonObject.toString());
         }
         //timerRound
     }
@@ -66,11 +61,7 @@ public class IstanbulBFT {
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", inputValue);
-
-            byte[] macResult = mac.doFinal((inputValue + "prepare").getBytes());
-            jsonObject.put("mac", Arrays.toString(macResult));
-            jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
-            this.broadcast.doBroadcast(jsonObject.toString());
+            this.broadcast.doBroadcast(inputValue+"prepare", jsonObject.toString());
         }
         else if (command.equals("prepare") && !commitPhase) {
             this.prepareMessages.add(inputValue);
@@ -91,14 +82,11 @@ public class IstanbulBFT {
                     this.processValue = inputValue;
 
                     JSONObject jsonObject = new JSONObject();
-                    byte[] macResult = mac.doFinal((inputValue+"commit").getBytes());
-                    jsonObject.put("mac", Arrays.toString(macResult));
-                    jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
                     jsonObject.put("command", "commit");
                     jsonObject.put("consensusID", this.consensusID);
                     //currentRound
                     jsonObject.put("inputValue", inputValue);
-                    this.broadcast.doBroadcast(jsonObject.toString());
+                    this.broadcast.doBroadcast(inputValue+"commit", jsonObject.toString());
                 }
             }
         }
@@ -122,9 +110,6 @@ public class IstanbulBFT {
                     //decide
                 }
             }
-        }
-        else{
-            System.out.println("LOLADAAAAAAAAAAAAAAAAAAAAAA");
         }
     }
 }

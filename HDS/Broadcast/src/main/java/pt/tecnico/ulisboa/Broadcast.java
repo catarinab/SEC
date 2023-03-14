@@ -13,11 +13,11 @@ public class Broadcast {
         this.apl = apl;
     }
 
-    public void doBroadcast(String message) throws IOException, InterruptedException {
+    public void doBroadcast(String inputValue, String message) throws IOException, InterruptedException {
         for(Entry<String, Integer> process: processes) {
             System.out.println("Sending message: "+message);
             System.out.println("sending to: "+process.getKey()+ process.getValue());
-            apl.send(message, process.getKey(), process.getValue());
+            apl.send(inputValue, message, process.getKey(), process.getValue());
         }
     }
 }

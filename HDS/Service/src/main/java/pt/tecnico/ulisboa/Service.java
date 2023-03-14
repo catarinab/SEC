@@ -28,9 +28,6 @@ public class Service extends Thread {
     private int byzantineProcesses = 0;
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private int consensusCounter = 0;
-    private final Mac mac = Mac.getInstance("HmacSHA256");
-    private final Key serverKey;
-    private static final String RSA = "DES";
 
     private JSONObject message = null;
 
@@ -41,11 +38,6 @@ public class Service extends Thread {
         this.leader = leader;
         this.broadcast = new Broadcast(processes, this.apl);
         this.byzantineProcesses = byzantineProcesses;
-        KeyGenerator keyGen = KeyGenerator.getInstance("DES");
-        SecureRandom secRandom = new SecureRandom();
-        keyGen.init(secRandom);
-        this.serverKey = keyGen.generateKey();
-        mac.init(serverKey);
     }
 
     public Service(Service father, JSONObject message) throws NoSuchAlgorithmException, InvalidKeyException {
@@ -60,8 +52,6 @@ public class Service extends Thread {
         this.consensusInstances = father.consensusInstances;
         this.consensusCounter = father.consensusCounter;
         this.message = message;
-        this.serverKey = father.serverKey;
-        this.mac.init(this.serverKey);
     }
 
 
@@ -118,34 +108,20 @@ public class Service extends Thread {
         System.out.println("This code is running in a thread with message: " + this.message);
         String command = this.message.getString("command");
         if (command.equals("append")) {
-            String keyBase64 = this.message.getString("key");
-            String macResultMessage = this.message.getString("mac");
-            String messageContent = this.message.getString("message");
-            byte[] encodedKey = Base64.getDecoder().decode(keyBase64);
-            Key clientKey = new SecretKeySpec(encodedKey,0,encodedKey.length, "DES");
-            byte[] bytes = messageContent.getBytes();
-            try {
-                Mac mac = Mac.getInstance("HmacSHA256");
-                mac.init(clientKey);
-                byte[] macResult = mac.doFinal(bytes);
-                if(!macResultMessage.equals(Arrays.toString((macResult)))) return;
-            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-                throw new RuntimeException(e);
-            }
 
             IstanbulBFT istanbulBFT = null;
             try {
                 istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast,
-                        this.byzantineProcesses, this.serverKey);
+                        this.byzantineProcesses);
             } catch (NoSuchAlgorithmException | InvalidKeyException e) {
                 throw new RuntimeException(e);
             }
             this.messageCounter++;
             this.consensusCounter++;
             try {
-                istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("message"), this.messageCounter);
+                istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("inputValue"), this.messageCounter);
                 this.consensusInstances.put(consensusCounter, istanbulBFT);
-                if (this.leader) istanbulBFT.algorithm2("pre-prepare", this.message.getString("message"), this.messageCounter);
+                if (this.leader) istanbulBFT.algorithm2("pre-prepare", this.message.getString("inputValue"), this.messageCounter);
             }
             catch (Exception e) {
                 e.printStackTrace();
