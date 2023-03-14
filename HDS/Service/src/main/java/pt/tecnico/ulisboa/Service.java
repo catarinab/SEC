@@ -23,6 +23,7 @@ public class Service extends Thread {
     private final Broadcast broadcast;
     private boolean leader = false;
     private ArrayList<String> delivered = new ArrayList<>();
+    private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
     private int messageCounter = 0;
     private int byzantineProcesses = 0;
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
@@ -53,6 +54,7 @@ public class Service extends Thread {
         this.broadcast = father.broadcast;
         this.leader = father.leader;
         this.delivered = father.delivered;
+        this.acksReceived = father.acksReceived;
         this.messageCounter = father.messageCounter;
         this.byzantineProcesses = father.byzantineProcesses;
         this.consensusInstances = father.consensusInstances;
@@ -102,20 +104,14 @@ public class Service extends Thread {
     public void receive() throws IOException {
         String message = this.apl.receive();
 
-        try {
-            JSONObject jsonObject = new JSONObject(message);
-            if(jsonObject.getString("command").equals("ack")) return;
-            String macResultMessage = jsonObject.getString("mac");
-            if (!delivered.contains(macResultMessage)) {
-                delivered.add(macResultMessage);
-            }
-            else return;
+        JSONObject jsonObject = new JSONObject(message);
+        String messageID = jsonObject.getString("mac");
+        if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
+        else if (!delivered.contains(messageID)) {
+            delivered.add(messageID);
             Service thread = new Service(this, jsonObject);
             thread.start();
         }
-        catch(Exception ignored) {
-        }
-
     }
 
     public void run() {

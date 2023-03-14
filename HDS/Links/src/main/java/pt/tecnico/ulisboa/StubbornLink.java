@@ -13,32 +13,26 @@ public class StubbornLink {
     private final FLL fll;
     private final int maxAttempts;
     private final int maxDelay;
+    private ConcurrentHashMap<String, JSONObject> acksReceived;
 
-    public StubbornLink(String hostname, int port, int maxAttempts, int maxDelay)
+    public StubbornLink(String hostname, int port, int maxAttempts, int maxDelay, ConcurrentHashMap<String, JSONObject> acksReceived)
             throws SocketException, UnknownHostException {
         this.maxAttempts = maxAttempts;
         this.maxDelay = maxDelay;
         this.fll = new FLL(hostname, port);
+        this.acksReceived = acksReceived;
     }
 
     public void send(String message, String hostName, int port) throws IOException, InterruptedException {
-        for (int attempts = 0; attempts < this.maxAttempts; attempts++) {
-            try {
-                System.out.println("Attempt: "+ attempts);
-                String messageID = Utility.getMacFromJson(message);
-                String messageReceived = this.fll.send(message.getBytes(), hostName, port);
-                String messageIDReceived = Utility.getMacFromJson(messageReceived);
-                JSONObject jsonObject = new JSONObject(messageReceived);
-                String command = jsonObject.getString("command");
-                if (messageID.equals(messageIDReceived)) return;
-                TimeUnit.SECONDS.sleep(this.maxDelay);
-            }
-            catch (SocketTimeoutException e) {
-                // timeout exception.
-                System.out.println("Timeout reached!!! " + e);
-            }
+        String messageID = Utility.getMacFromJson(message);
+        int attempts = 0;
+        while (!this.acksReceived.containsKey(messageID) && attempts < this.maxAttempts) {
+            System.out.println("Attempt: "+ attempts);
+            this.fll.send(message.getBytes(), hostName, port);
+            attempts++;
+            TimeUnit.SECONDS.sleep(this.maxDelay);
         }
-
+       this.acksReceived.remove(messageID);
     }
 
     public String receive() throws IOException {
