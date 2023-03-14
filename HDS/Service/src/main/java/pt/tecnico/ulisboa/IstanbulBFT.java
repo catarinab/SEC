@@ -50,7 +50,7 @@ public class IstanbulBFT {
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", message);
-            byte[] macResult = mac.doFinal(message.getBytes());
+            byte[] macResult = mac.doFinal((message + "preprepare").getBytes());
             jsonObject.put("mac", Arrays.toString(macResult));
             jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
             this.broadcast.doBroadcast(jsonObject.toString());
@@ -67,13 +67,14 @@ public class IstanbulBFT {
             //currentRound
             jsonObject.put("inputValue", inputValue);
 
-            byte[] macResult = mac.doFinal(inputValue.getBytes());
+            byte[] macResult = mac.doFinal((inputValue + "prepare").getBytes());
             jsonObject.put("mac", Arrays.toString(macResult));
             jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
             this.broadcast.doBroadcast(jsonObject.toString());
         }
         else if (command.equals("prepare") && !commitPhase) {
             this.prepareMessages.add(inputValue);
+            System.out.println("pREPARE MESSAGES:"+this.prepareMessages);
             int quorumSize = 2 * this.byzantineProcesses + 1;
             if (this.prepareMessages.size() >= quorumSize) {
                 int validCounter = 0;
@@ -90,7 +91,7 @@ public class IstanbulBFT {
                     this.processValue = inputValue;
 
                     JSONObject jsonObject = new JSONObject();
-                    byte[] macResult = mac.doFinal(inputValue.getBytes());
+                    byte[] macResult = mac.doFinal((inputValue+"commit").getBytes());
                     jsonObject.put("mac", Arrays.toString(macResult));
                     jsonObject.put("key", Base64.getEncoder().encodeToString(this.serverKey.getEncoded()));
                     jsonObject.put("command", "commit");
@@ -121,6 +122,9 @@ public class IstanbulBFT {
                     //decide
                 }
             }
+        }
+        else{
+            System.out.println("LOLADAAAAAAAAAAAAAAAAAAAAAA");
         }
     }
 }

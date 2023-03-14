@@ -113,8 +113,7 @@ public class Service extends Thread {
             Service thread = new Service(this, jsonObject);
             thread.start();
         }
-        catch(Exception e) {
-            e.printStackTrace();
+        catch(Exception ignored) {
         }
 
     }
@@ -150,6 +149,7 @@ public class Service extends Thread {
             try {
                 istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("message"), this.messageCounter);
                 this.consensusInstances.put(consensusCounter, istanbulBFT);
+                if (this.leader) istanbulBFT.algorithm2("pre-prepare", this.message.getString("message"), this.messageCounter);
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -158,11 +158,8 @@ public class Service extends Thread {
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
             this.messageCounter++;
             try {
-                System.out.println(this.message);
-                System.out.println(this.consensusInstances);
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < 7; i++) {
                     try {
-                        System.out.println(this.consensusInstances);
                         this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command,
                                 this.message.getString("inputValue"), this.messageCounter);
                         break;
