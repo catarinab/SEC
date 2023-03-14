@@ -1,20 +1,27 @@
 package pt.tecnico.ulisboa;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Blockchain {
-    private final ArrayList<Block> chain;
+    private final LinkedList<Block> chain;
 
     public Blockchain() {
-        this.chain = new ArrayList<Block>();
+        this.chain = new LinkedList<Block>();
     }
 
-    public void addBlock(Block block) {
-        this.chain.add(block);
+    public synchronized void addValue(String inputValue) {
+        String lastHash = ((this.chain.size() == 0) ? "" : this.chain.getLast().getHash());
+        this.chain.add(new Block(lastHash, inputValue));
     }
 
-    public List<Block> getBlockchain() {
+    public synchronized List<Block> getBlockchain() {
         return this.chain;
+    }
+
+    public synchronized void printBlockchain() {
+        for (Block block : this.chain){
+            System.out.println(block.getHash() + " , "+block.getData());
+        }
     }
     
 }

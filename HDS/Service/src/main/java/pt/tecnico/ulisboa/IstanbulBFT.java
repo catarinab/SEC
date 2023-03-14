@@ -22,23 +22,23 @@ public class IstanbulBFT {
     private boolean commitPhase = false;
     private ArrayList<String> commitMessages = new ArrayList<>();
     private boolean decisionPhase = false;
-    private Key serverKey;
-    private Mac mac = Mac.getInstance("HmacSHA256");
+    private Blockchain blockchain;
 
     //currentRound
     //processRound
     private String processValue;
     //private Timer timer = null;
 
-    public IstanbulBFT(Entry<String,Integer> processID, boolean processLeader, Broadcast broadcast, int byzantineProcesses)
-            throws NoSuchAlgorithmException, InvalidKeyException {
+    public IstanbulBFT(Entry<String,Integer> processID, boolean processLeader, Broadcast broadcast, int byzantineProcesses,
+                       Blockchain blockchain) throws NoSuchAlgorithmException, InvalidKeyException {
         this.processLeader = processLeader;
         this.processID = processID;
         this.broadcast = broadcast;
         this.byzantineProcesses = byzantineProcesses;
+        this.blockchain = blockchain;
     }
 
-    public void algorithm1(int consensusCounter, String message, int messageCounter) throws IOException, InterruptedException {
+    public synchronized void algorithm1(int consensusCounter, String message) throws IOException, InterruptedException {
         this.consensusID = consensusCounter;
         //currentRound
 
@@ -48,12 +48,12 @@ public class IstanbulBFT {
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", message);
-            this.broadcast.doBroadcast(message + "preprepare", jsonObject.toString());
+            this.broadcast.doBroadcast(message + "pre-prepare", jsonObject.toString());
         }
         //timerRound
     }
 
-    public void algorithm2(String command, String inputValue, int messageCounter) throws IOException, InterruptedException {
+    public synchronized void algorithm2(String command, String inputValue) throws IOException, InterruptedException, NoSuchAlgorithmException {
         if (command.equals("pre-prepare")) {
             //timerRound
             JSONObject jsonObject = new JSONObject();
@@ -63,7 +63,8 @@ public class IstanbulBFT {
             jsonObject.put("inputValue", inputValue);
             this.broadcast.doBroadcast(inputValue+"prepare", jsonObject.toString());
         }
-        else if (command.equals("prepare") && !commitPhase) {
+        else if (command.equals("prepare") && !this.commitPhase) {
+            System.out.println("COMMITPHASE="+this.commitPhase);
             this.prepareMessages.add(inputValue);
             System.out.println("pREPARE MESSAGES:"+this.prepareMessages);
             int quorumSize = 2 * this.byzantineProcesses + 1;
@@ -75,7 +76,7 @@ public class IstanbulBFT {
                 System.out.println("Prepare Messages: "+this.prepareMessages);
                 System.out.println("Valid Counter"+validCounter);
                 if (validCounter >= quorumSize) {
-                    System.out.println("inside if");
+                    System.out.println("inside if, COMMIT PHASE TRUE");
                     this.commitPhase = true;
 
                     //processRound
@@ -104,10 +105,11 @@ public class IstanbulBFT {
                 if (validCounter >= quorumSize) {
                     this.decisionPhase = true;
                     System.out.println("ValidCounter:"+validCounter);
-                    System.out.println("DECIDED!");
+                    System.out.println("DECIDED!:"+inputValue);
 
                     //timerRound
-                    //decide
+                    this.blockchain.addValue(inputValue);
+                    this.blockchain.printBlockchain();
                 }
             }
         }

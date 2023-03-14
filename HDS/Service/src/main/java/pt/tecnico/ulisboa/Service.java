@@ -2,20 +2,17 @@ package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import javax.crypto.Mac;
+
+import pt.tecnico.ulisboa.Blockchain;
 
 public class Service extends Thread {
     private final Entry<String,Integer> processID;
@@ -24,10 +21,10 @@ public class Service extends Thread {
     private boolean leader = false;
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
-    private int messageCounter = 0;
     private int byzantineProcesses = 0;
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private int consensusCounter = 0;
+    private Blockchain blockchain = new Blockchain();
 
     private JSONObject message = null;
 
@@ -47,7 +44,6 @@ public class Service extends Thread {
         this.leader = father.leader;
         this.delivered = father.delivered;
         this.acksReceived = father.acksReceived;
-        this.messageCounter = father.messageCounter;
         this.byzantineProcesses = father.byzantineProcesses;
         this.consensusInstances = father.consensusInstances;
         this.consensusCounter = father.consensusCounter;
@@ -71,14 +67,7 @@ public class Service extends Thread {
         Entry<Integer, List<Entry<String,Integer>>> fileSetup = Utility.readProcesses("/home/cat/uni/mestrado/SEC/HDS/services.txt");
         int byzantineProcesses = fileSetup.getKey();
         List<Entry<String,Integer>> processes = fileSetup.getValue();
-        boolean leader = false;
-        for (int i = 0; i < processes.size(); i++) {
-            if (processes.get(i).getKey().equals(hostname) && processes.get(i).getValue() == port) {
-                if (i == 0) leader = true;
-                processes.remove(i);
-                break;
-            }
-        }
+        boolean leader = processes.get(0).getKey().equals(hostname) && processes.get(0).getValue() == port;
 
         Service service = new Service(hostname, port, byzantineProcesses, processes, leader);
         System.out.println(Service.class.getName());
@@ -112,28 +101,26 @@ public class Service extends Thread {
             IstanbulBFT istanbulBFT = null;
             try {
                 istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast,
-                        this.byzantineProcesses);
+                        this.byzantineProcesses, this.blockchain);
             } catch (NoSuchAlgorithmException | InvalidKeyException e) {
                 throw new RuntimeException(e);
             }
-            this.messageCounter++;
             this.consensusCounter++;
             try {
-                istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("inputValue"), this.messageCounter);
+                istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("inputValue"));
                 this.consensusInstances.put(consensusCounter, istanbulBFT);
-                if (this.leader) istanbulBFT.algorithm2("pre-prepare", this.message.getString("inputValue"), this.messageCounter);
+                if (this.leader) istanbulBFT.algorithm2("pre-prepare", this.message.getString("inputValue"));
             }
             catch (Exception e) {
                 e.printStackTrace();
             }
         }
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
-            this.messageCounter++;
             try {
                 for (int i = 0; i < 7; i++) {
                     try {
                         this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command,
-                                this.message.getString("inputValue"), this.messageCounter);
+                                this.message.getString("inputValue"));
                         break;
                     }
                     catch (Exception e){

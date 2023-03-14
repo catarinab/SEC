@@ -38,6 +38,7 @@ public class APL {
         byte[] macResult = mac.doFinal(inputValue.getBytes());
         jsonToSend.put("mac", Arrays.toString(macResult));
         jsonToSend.put("key", Base64.getEncoder().encodeToString(this.key.getEncoded()));
+        System.out.println(jsonToSend);
         this.stubbornLink.send(jsonToSend.toString(), hostName, port);
     }
 
@@ -46,18 +47,19 @@ public class APL {
         JSONObject message = new JSONObject(received);
         String command = message.getString("command");
         if(command.equals("ack")) return received;
+        System.out.println(received);
         try {
             String keyBase64 = message.getString("key");
             String macResultMessage = message.getString("mac");
             String messageContent = message.getString("inputValue");
             byte[] encodedKey = Base64.getDecoder().decode(keyBase64);
             Key receivedKey = new SecretKeySpec(encodedKey,0,encodedKey.length, "DES");
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(receivedKey);
-            byte[] macResult = mac.doFinal((messageContent+command).getBytes());
+            Mac receivedMac = Mac.getInstance("HmacSHA256");
+            receivedMac.init(receivedKey);
+            byte[] macResult = receivedMac.doFinal((messageContent+command).getBytes());
             if(!macResultMessage.equals(Arrays.toString((macResult)))){
                 System.out.println("mac errado");
-                return;
+                throw new RuntimeException();
             }
         } catch (Exception e) {
             System.out.println("mac errado");

@@ -13,16 +13,29 @@ public class Block {
     private final String previousHash;
     private final String data;
 
-    public Block(String previousHash, String data) throws NoSuchAlgorithmException {
+    public Block(String previousHash, String data) {
         this.previousHash = previousHash;
         this.hash = calculateHash(this.previousHash, data);
         this.data = data;
     }
 
-    public String calculateHash(String previousHash, String data) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        String stringToHash = previousHash + data;
-        return Arrays.toString(digest.digest(stringToHash.getBytes(StandardCharsets.UTF_8)));
+    public String calculateHash(String previousHash, String data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String stringToHash = previousHash + data;
+            return Arrays.toString(digest.digest(stringToHash.getBytes(StandardCharsets.UTF_8)));
+        }
+        catch(NoSuchAlgorithmException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String getData(){
+        return this.data;
+    }
+
+    public String getHash(){
+        return this.hash;
     }
     
 }
