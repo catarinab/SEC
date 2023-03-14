@@ -1,5 +1,7 @@
 package pt.tecnico.ulisboa;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;

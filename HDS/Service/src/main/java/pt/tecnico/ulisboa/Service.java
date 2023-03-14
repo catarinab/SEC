@@ -37,7 +37,7 @@ public class Service extends Thread {
     public Service(String hostname, int port, int byzantineProcesses, List<Entry<String,Integer>> processes, boolean leader)
             throws SocketException, UnknownHostException, NoSuchAlgorithmException, InvalidKeyException {
         processID = new AbstractMap.SimpleEntry<>(hostname, port);
-        this.apl = new APL(hostname, port);
+        this.apl = new APL(hostname, port, acksReceived);
         this.leader = leader;
         this.broadcast = new Broadcast(processes, this.apl);
         this.byzantineProcesses = byzantineProcesses;
@@ -101,7 +101,7 @@ public class Service extends Thread {
         System.exit(1);
     }
 
-    public void receive() throws IOException {
+    public void receive() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
         String message = this.apl.receive();
 
         JSONObject jsonObject = new JSONObject(message);

@@ -5,7 +5,6 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.*;
 
-import pt.tecnico.ulisboa.Utility;
 
 public class FLL {
 
