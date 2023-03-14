@@ -15,6 +15,8 @@ public class Broadcast {
 
     public void doBroadcast(String message) throws IOException, InterruptedException {
         for(Entry<String, Integer> process: processes) {
+            System.out.println("Sending message: "+message);
+            System.out.println("sending to: "+process.getKey()+ process.getValue());
             apl.send(message, process.getKey(), process.getValue());
         }
     }

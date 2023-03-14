@@ -22,7 +22,7 @@ public class FLL {
 
         DatagramPacket RPacket = new DatagramPacket(receive, receive.length);
 
-        this.ds.setSoTimeout(1000);
+        //this.ds.setSoTimeout(1000);
         try {
             this.ds.receive(RPacket);
             this.ds.setSoTimeout(0);
@@ -31,7 +31,7 @@ public class FLL {
             // timeout exception.
             System.out.println("Timeout reached!!! " + e);
             this.ds.setSoTimeout(0);
-            return new JSONObject().toString();
+            return Utility.data(message).toString();
         }
 
 
@@ -40,6 +40,7 @@ public class FLL {
     }
 
     public String receive() throws IOException {
+        this.ds.setSoTimeout(0);
         byte[] receive = new byte[65535];
 
         DatagramPacket RPacket = new DatagramPacket(receive, receive.length);
@@ -50,7 +51,7 @@ public class FLL {
             JSONObject jsonObjectReceived = new JSONObject(message);
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("mac", Utility.getMacFromJson(message));
-            jsonObject.put("command", "ack");
+            jsonObject.put("command", "ack");this.ds.setSoTimeout(0);
             DatagramPacket sendPacket = new DatagramPacket(jsonObject.toString().getBytes(),
                     jsonObject.toString().getBytes().length, RPacket.getAddress(), RPacket.getPort());
             this.ds.send(sendPacket);

@@ -80,7 +80,10 @@ public class IstanbulBFT {
                 for (String message: this.prepareMessages) {
                     if (message.equals(inputValue)) validCounter++;
                 }
+                System.out.println("Prepare Messages: "+this.prepareMessages);
+                System.out.println("Valid Counter"+validCounter);
                 if (validCounter >= quorumSize) {
+                    System.out.println("inside if");
                     this.commitPhase = true;
 
                     //processRound
@@ -101,7 +104,6 @@ public class IstanbulBFT {
         else if (command.equals("commit") && !decisionPhase) {
             //timerRound
             this.commitMessages.add(inputValue);
-            System.out.println("COMMITMESSAGES"+this.commitMessages);
 
             int quorumSize = 2 * this.byzantineProcesses + 1;
             if (this.commitMessages.size() >= quorumSize) {
@@ -110,9 +112,9 @@ public class IstanbulBFT {
                 for (String message : this.commitMessages) {
                     if (message.equals(inputValue)) validCounter++;
                 }
-                System.out.println(validCounter);
                 if (validCounter >= quorumSize) {
                     this.decisionPhase = true;
+                    System.out.println("ValidCounter:"+validCounter);
                     System.out.println("DECIDED!");
 
                     //timerRound

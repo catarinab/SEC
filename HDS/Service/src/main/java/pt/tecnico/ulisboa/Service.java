@@ -39,6 +39,7 @@ public class Service extends Thread {
         this.apl = new APL(hostname, port);
         this.leader = leader;
         this.broadcast = new Broadcast(processes, this.apl);
+        this.byzantineProcesses = byzantineProcesses;
         KeyGenerator keyGen = KeyGenerator.getInstance("DES");
         SecureRandom secRandom = new SecureRandom();
         keyGen.init(secRandom);
@@ -167,7 +168,6 @@ public class Service extends Thread {
                         break;
                     }
                     catch (Exception e){
-                        e.printStackTrace();
                         TimeUnit.SECONDS.sleep(1);
                     }
                 }
