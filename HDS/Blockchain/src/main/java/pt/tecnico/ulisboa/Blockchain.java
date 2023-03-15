@@ -19,8 +19,9 @@ public class Blockchain {
     }
 
     public synchronized void printBlockchain() {
+        int i = 0;
         for (Block block : this.chain){
-            System.out.println(block.getHash() + " , "+block.getData());
+            System.out.println(i++ +" , "+block.getData());
         }
     }
     

@@ -2,7 +2,10 @@ package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -18,16 +21,18 @@ public class IstanbulBFT {
     private Broadcast broadcast;
     private int byzantineProcesses;
     private int consensusID;
+
     private ArrayList<String> prepareMessages = new ArrayList<>();
     private boolean commitPhase = false;
     private ArrayList<String> commitMessages = new ArrayList<>();
     private boolean decisionPhase = false;
-    private Blockchain blockchain;
 
     //currentRound
     //processRound
     private String processValue;
     //private Timer timer = null;
+
+    private Blockchain blockchain;
 
     public IstanbulBFT(Entry<String,Integer> processID, boolean processLeader, Broadcast broadcast, int byzantineProcesses,
                        Blockchain blockchain) throws NoSuchAlgorithmException, InvalidKeyException {
@@ -38,7 +43,9 @@ public class IstanbulBFT {
         this.blockchain = blockchain;
     }
 
-    public synchronized void algorithm1(int consensusCounter, String message) throws IOException, InterruptedException {
+    public synchronized void algorithm1(int consensusCounter, String message) throws IOException, InterruptedException,
+            NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException,
+            InvalidKeyException {
         this.consensusID = consensusCounter;
         //currentRound
 
@@ -53,7 +60,9 @@ public class IstanbulBFT {
         //timerRound
     }
 
-    public synchronized void algorithm2(String command, String inputValue) throws IOException, InterruptedException, NoSuchAlgorithmException {
+    public synchronized void algorithm2(String command, String inputValue) throws IOException, InterruptedException,
+            NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
+            InvalidKeyException {
         if (command.equals("pre-prepare")) {
             //timerRound
             JSONObject jsonObject = new JSONObject();
@@ -63,20 +72,15 @@ public class IstanbulBFT {
             jsonObject.put("inputValue", inputValue);
             this.broadcast.doBroadcast(inputValue+"prepare", jsonObject.toString());
         }
-        else if (command.equals("prepare") && !this.commitPhase) {
-            System.out.println("COMMITPHASE="+this.commitPhase);
+        else if (command.equals("prepare") && !this.commitPhase && !this.decisionPhase) {
             this.prepareMessages.add(inputValue);
-            System.out.println("pREPARE MESSAGES:"+this.prepareMessages);
             int quorumSize = 2 * this.byzantineProcesses + 1;
             if (this.prepareMessages.size() >= quorumSize) {
                 int validCounter = 0;
                 for (String message: this.prepareMessages) {
                     if (message.equals(inputValue)) validCounter++;
                 }
-                System.out.println("Prepare Messages: "+this.prepareMessages);
-                System.out.println("Valid Counter"+validCounter);
                 if (validCounter >= quorumSize) {
-                    System.out.println("inside if, COMMIT PHASE TRUE");
                     this.commitPhase = true;
 
                     //processRound
@@ -104,8 +108,7 @@ public class IstanbulBFT {
                 }
                 if (validCounter >= quorumSize) {
                     this.decisionPhase = true;
-                    System.out.println("ValidCounter:"+validCounter);
-                    System.out.println("DECIDED!:"+inputValue);
+                    System.out.println("Istanbul BFT decided: " + inputValue);
 
                     //timerRound
                     this.blockchain.addValue(inputValue);

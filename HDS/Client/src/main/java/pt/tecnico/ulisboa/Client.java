@@ -2,15 +2,8 @@ package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,7 +38,8 @@ public class Client extends Thread{
 
     public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException,
             InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-        List<Entry<String,Integer>> processes = Utility.readProcesses("/home/cat/uni/mestrado/SEC/HDS/services.txt").getValue();
+        String path = System.getProperty("path");
+        List<Entry<String,Integer>> processes = Utility.readProcesses(path).getValue();
 
         System.out.println(Client.class.getName());
         Client client = new Client(processes);

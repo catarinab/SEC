@@ -37,18 +37,27 @@ fi
 
 # Loop over each line of the file and run mvn exec:java with user input and file line
 counter=0
-
+counterByzantine=NByzantine
 while IFS= read -r line && (( counter <= NService))
 do
     counter=$((counter+1))
     if (( counter == 1 )); then
         continue # Skip first line
-    elif (( counter == 2 )); then
+    elif (( counter == 2 )) || ((counterByzantine == 0)); then
         # Skip prompt for input for second line
         input="C"
     else
         # Prompt user for input
         read -p "For $line enter C for correct behaviour or B for byzantine behaviour: " input < /dev/tty
+
+         if [ "$input" = "B" ]; then
+           counterByzantine=$((counterByzantine-1))
+        fi
+
+        if [[ $input != "C" && $input != "B" ]]; then
+            echo "Invalid input. Please enter either C or B."
+            exit 1
+        fi
     fi
 
     # Run program with input and file line arguments
