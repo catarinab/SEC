@@ -3,62 +3,68 @@ package pt.tecnico.ulisboa;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-
-import pt.tecnico.ulisboa.Blockchain;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 public class Service extends Thread {
     private final Entry<String,Integer> processID;
+    private final boolean byzantine;
+    private final int byzantineProcesses;
+    private final boolean leader;
+
     private final APL apl;
     private final Broadcast broadcast;
-    private boolean leader = false;
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
-    private int byzantineProcesses = 0;
-    private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
-    private int consensusCounter = 0;
-    private Blockchain blockchain = new Blockchain();
 
+    private final Blockchain blockchain = new Blockchain();
+
+    private int consensusCounter = 0;
+    private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private JSONObject message = null;
 
-    public Service(String hostname, int port, int byzantineProcesses, List<Entry<String,Integer>> processes, boolean leader)
-            throws SocketException, UnknownHostException, NoSuchAlgorithmException, InvalidKeyException {
-        processID = new AbstractMap.SimpleEntry<>(hostname, port);
+    public Service(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes, boolean leader)
+            throws IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+        this.processID = new AbstractMap.SimpleEntry<>(hostname, port);
+        this.byzantine = byzantine;
+        this.byzantineProcesses = byzantineProcesses;
         this.apl = new APL(hostname, port, acksReceived);
         this.leader = leader;
         this.broadcast = new Broadcast(processes, this.apl);
-        this.byzantineProcesses = byzantineProcesses;
     }
 
-    public Service(Service father, JSONObject message) throws NoSuchAlgorithmException, InvalidKeyException {
+    public Service(Service father, JSONObject message) {
         this.processID = father.processID;
+        this.byzantine = father.byzantine;
+        this.byzantineProcesses = father.byzantineProcesses;
         this.apl = father.apl;
         this.broadcast = father.broadcast;
         this.leader = father.leader;
         this.delivered = father.delivered;
         this.acksReceived = father.acksReceived;
-        this.byzantineProcesses = father.byzantineProcesses;
         this.consensusInstances = father.consensusInstances;
         this.consensusCounter = father.consensusCounter;
         this.message = message;
     }
 
 
-    public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException,
-            InvalidKeyException {
+    public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeyException,
+            InvalidKeySpecException {
         String hostname = null;
         int port = 0;
-        if(args.length != 2) serviceUsage();
+        String behavior = null;
+        if(args.length != 3) serviceUsage();
         try {
             hostname = args[0];
             port = Integer.parseInt(args[1]);
+            behavior = args[2];
         }
         catch (NumberFormatException nfe) {
             serviceUsage();
@@ -68,21 +74,26 @@ public class Service extends Thread {
         int byzantineProcesses = fileSetup.getKey();
         List<Entry<String,Integer>> processes = fileSetup.getValue();
         boolean leader = processes.get(0).getKey().equals(hostname) && processes.get(0).getValue() == port;
+        if (behavior.equals("B") && leader) {
+            System.out.println("The leader cannot have byzantine behavior.");
+            System.exit(1);
+        }
 
-        Service service = new Service(hostname, port, byzantineProcesses, processes, leader);
+        Service service = new Service(hostname, port, behavior.equals("B"), byzantineProcesses, processes, leader);
         System.out.println(Service.class.getName());
         while(true) service.receive();
     }
 
     public static void serviceUsage() {
-        System.out.println("Usage: Service port");
-        System.out.println("port is an int with a maximum of 5 chars");
+        System.out.println("Usage: Service hostname port behavior.");
+        System.out.println("hostname: domain name assigned to a host computer.");
+        System.out.println("port: Integer that identifies connection endpoint, with a maximum of 5 characters.");
+        System.out.println("behavior: C (Correct) or B (Byzantine).");
         System.exit(1);
     }
 
-    public void receive() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
+    public void receive() throws IOException {
         String message = this.apl.receive();
-
         JSONObject jsonObject = new JSONObject(message);
         String messageID = jsonObject.getString("mac");
         if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
@@ -96,8 +107,17 @@ public class Service extends Thread {
     public void run() {
         System.out.println("This code is running in a thread with message: " + this.message);
         String command = this.message.getString("command");
+        String inputValue = this.message.getString("inputValue");
+        if (byzantine) {
+            String reverse = "";
+            char ch;
+            for (int i=0; i < inputValue.length(); i++) {
+                ch = inputValue.charAt(i);
+                reverse = ch + reverse;
+            }
+            inputValue = reverse;
+        }
         if (command.equals("append")) {
-
             IstanbulBFT istanbulBFT = null;
             try {
                 istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast,
@@ -107,9 +127,9 @@ public class Service extends Thread {
             }
             this.consensusCounter++;
             try {
-                istanbulBFT.algorithm1(this.consensusCounter, this.message.getString("inputValue"));
+                istanbulBFT.algorithm1(this.consensusCounter, inputValue);
                 this.consensusInstances.put(consensusCounter, istanbulBFT);
-                if (this.leader) istanbulBFT.algorithm2("pre-prepare", this.message.getString("inputValue"));
+                if (this.leader) istanbulBFT.algorithm2("pre-prepare", inputValue);
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -117,7 +137,7 @@ public class Service extends Thread {
         }
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
             try {
-                for (int i = 0; i < 7; i++) {
+                while (true) {
                     try {
                         this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command,
                                 this.message.getString("inputValue"));
