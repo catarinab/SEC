@@ -2,57 +2,50 @@ package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.Mac;
+import javax.crypto.*;
 
 public class Client extends Thread{
     private final Entry<String,Integer> processID;
+    private final int numProcesses;
     private final Broadcast broadcast;
     private final APL apl;
     private final Mac mac = Mac.getInstance("HmacSHA256");
-    private final Key key;
     private static final String RSA = "DES";
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
 
 
-
-    public Client(List<Entry<String,Integer>> processes) throws SocketException, UnknownHostException,
-            NoSuchAlgorithmException, InvalidKeyException {
-        processID = new AbstractMap.SimpleEntry<>("localhost", 4321);
+    public Client(List<Entry<String,Integer>> processes) throws IOException,
+            NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+        this.processID = new AbstractMap.SimpleEntry<>("localhost", 4321);
+        this.numProcesses = processes.size();
         this.apl = new APL("localhost", 4321, acksReceived);
         this.broadcast = new Broadcast(processes, apl);
-        KeyGenerator keyGen = KeyGenerator.getInstance("DES");
-        SecureRandom secRandom = new SecureRandom();
-        keyGen.init(secRandom);
-        this.key = keyGen.generateKey();
-        mac.init(key);
     }
 
     public Client(Client client) throws NoSuchAlgorithmException {
-        processID = client.processID;
+        this.processID = client.processID;
+        this.numProcesses = client.numProcesses;
         this.apl = client.apl;
         this.broadcast = client.broadcast;
-        this.key = null;
         this.acksReceived = client.acksReceived;
 
     }
 
     public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException,
-            InvalidKeyException {
+            InvalidKeyException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         List<Entry<String,Integer>> processes = Utility.readProcesses("/home/cat/uni/mestrado/SEC/HDS/services.txt").getValue();
 
         System.out.println(Client.class.getName());
@@ -65,22 +58,24 @@ public class Client extends Thread{
     public void send(String message) throws IOException, InterruptedException {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("command", "append");
-        jsonObject.put("message", message);
-        byte[] macResult = mac.doFinal(message.getBytes());
-        jsonObject.put("mac", Arrays.toString(macResult));
-        jsonObject.put("key", Base64.getEncoder().encodeToString(this.key.getEncoded()));
-        this.broadcast.doBroadcast(jsonObject.toString());
+        jsonObject.put("inputValue", message);
+        this.broadcast.doBroadcast(message + "append", jsonObject.toString());
     }
+
+    public void receive() throws IOException {
+        String message = this.apl.receive();
+        System.out.println(message);
+        JSONObject jsonObject = new JSONObject(message);
+        String messageID = jsonObject.getString("mac");
+        if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
+    }
+
     public void run() {
-        for(int received = 0; received < 4; received++){
-            try{
-                String message = this.apl.receive();
-                System.out.println(message);
-                JSONObject jsonObject = new JSONObject(message);
-                String messageID = jsonObject.getString("mac");
-                if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
+        for(int received = 0; received < numProcesses; received++){
+            try {
+                receive();
             }
-            catch (Exception e){
+            catch (Exception e) {
                 e.printStackTrace();
             }
         }
