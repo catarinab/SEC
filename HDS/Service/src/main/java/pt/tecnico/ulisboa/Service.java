@@ -57,20 +57,25 @@ public class Service extends Thread {
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidKeySpecException {
-        String hostname = null;
-        int port = 0;
-        String behavior = null;
-        if(args.length != 3) serviceUsage();
+
+        String behavior = System.getProperty("behaviour");
+        String server = System.getProperty("server");
+        String path = System.getProperty("path");
+
+        String[] serverInfo = server.split(" ");
+        String hostname = serverInfo[0];
+        int port = Integer.parseInt(serverInfo[1]);
+
+        if(serverInfo.length != 2 || (!behavior.equals("B") && !behavior.equals("C"))) serviceUsage();
         try {
-            hostname = args[0];
-            port = Integer.parseInt(args[1]);
-            behavior = args[2];
+            hostname = serverInfo[0];
+            port = Integer.parseInt(serverInfo[1]);
         }
         catch (NumberFormatException nfe) {
             serviceUsage();
         }
 
-        Entry<Integer, List<Entry<String,Integer>>> fileSetup = Utility.readProcesses("/home/cat/uni/mestrado/SEC/HDS/services.txt");
+        Entry<Integer, List<Entry<String,Integer>>> fileSetup = Utility.readProcesses(path);
         int byzantineProcesses = fileSetup.getKey();
         List<Entry<String,Integer>> processes = fileSetup.getValue();
         boolean leader = processes.get(0).getKey().equals(hostname) && processes.get(0).getValue() == port;

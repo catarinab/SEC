@@ -46,7 +46,9 @@ public class Client extends Thread{
 
     public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException,
             InvalidKeyException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-        List<Entry<String,Integer>> processes = Utility.readProcesses("/home/cat/uni/mestrado/SEC/HDS/services.txt").getValue();
+
+        String path = System.getProperty("path");
+        List<Entry<String,Integer>> processes = Utility.readProcesses(path).getValue();
 
         System.out.println(Client.class.getName());
         Client client = new Client(processes);
