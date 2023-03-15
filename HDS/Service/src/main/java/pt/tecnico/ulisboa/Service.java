@@ -105,30 +105,22 @@ public class Service extends Thread {
     }
 
     public void run() {
-        System.out.println("This code is running in a thread with message: " + this.message);
         String command = this.message.getString("command");
         String inputValue = this.message.getString("inputValue");
         if (byzantine) {
-            String reverse = "";
-            char ch;
-            for (int i=0; i < inputValue.length(); i++) {
-                ch = inputValue.charAt(i);
-                reverse = ch + reverse;
-            }
-            inputValue = reverse;
+            StringBuilder reverse = new StringBuilder();
+            for (int i = 0; i < inputValue.length(); i++) reverse.insert(0, inputValue.charAt(i));
+            inputValue = reverse.toString();
         }
+        System.out.println("This code is running in a thread with message: " + "(" + command + ") " + inputValue);
         if (command.equals("append")) {
-            IstanbulBFT istanbulBFT = null;
+            this.consensusCounter++;
+            IstanbulBFT istanbulBFT;
             try {
                 istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast,
                         this.byzantineProcesses, this.blockchain);
-            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-                throw new RuntimeException(e);
-            }
-            this.consensusCounter++;
-            try {
+                this.consensusInstances.put(this.consensusCounter, istanbulBFT);
                 istanbulBFT.algorithm1(this.consensusCounter, inputValue);
-                this.consensusInstances.put(consensusCounter, istanbulBFT);
                 if (this.leader) istanbulBFT.algorithm2("pre-prepare", inputValue);
             }
             catch (Exception e) {
@@ -137,19 +129,11 @@ public class Service extends Thread {
         }
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
             try {
-                while (true) {
-                    try {
-                        this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command,
-                                this.message.getString("inputValue"));
-                        break;
-                    }
-                    catch (Exception e){
-                        TimeUnit.SECONDS.sleep(1);
-                    }
-                }
+                this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command,
+                        this.message.getString("inputValue"));
             }
-            catch (InterruptedException e) {
-                throw new RuntimeException(e);
+            catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

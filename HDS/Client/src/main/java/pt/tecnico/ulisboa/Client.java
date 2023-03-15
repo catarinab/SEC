@@ -20,15 +20,14 @@ import javax.crypto.*;
 public class Client extends Thread{
     private final Entry<String,Integer> processID;
     private final int numProcesses;
+
     private final Broadcast broadcast;
     private final APL apl;
-    private final Mac mac = Mac.getInstance("HmacSHA256");
-    private static final String RSA = "DES";
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
 
 
     public Client(List<Entry<String,Integer>> processes) throws IOException,
-            NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+            NoSuchAlgorithmException {
         this.processID = new AbstractMap.SimpleEntry<>("localhost", 4321);
         this.numProcesses = processes.size();
         this.apl = new APL("localhost", 4321, acksReceived);
@@ -45,7 +44,7 @@ public class Client extends Thread{
     }
 
     public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException,
-            InvalidKeyException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+            InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         List<Entry<String,Integer>> processes = Utility.readProcesses("/home/cat/uni/mestrado/SEC/HDS/services.txt").getValue();
 
         System.out.println(Client.class.getName());
@@ -55,7 +54,8 @@ public class Client extends Thread{
         client.send("ola");
     }
 
-    public void send(String message) throws IOException, InterruptedException {
+    public void send(String message) throws IOException, InterruptedException, NoSuchPaddingException,
+            IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("command", "append");
         jsonObject.put("inputValue", message);
