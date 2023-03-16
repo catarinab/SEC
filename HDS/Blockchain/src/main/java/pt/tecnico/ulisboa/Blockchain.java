@@ -14,8 +14,8 @@ public class Blockchain {
         this.chain.add(new Block(lastHash, inputValue));
     }
 
-    public synchronized List<Block> getBlockchain() {
-        return this.chain;
+    public synchronized String getBlockchainIndex(int index) {
+        return this.chain.get(index).getData();
     }
 
     public synchronized void printBlockchain() {

@@ -21,7 +21,8 @@ public class Client extends Thread{
 
 
     public Client(List<Entry<String,Integer>> processes) throws IOException,
-            NoSuchAlgorithmException {
+            NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
+            InvalidKeyException {
         this.processID = new AbstractMap.SimpleEntry<>("localhost", 4321);
         this.numProcesses = processes.size();
         this.apl = new APL("localhost", 4321, acksReceived);

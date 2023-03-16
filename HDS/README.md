@@ -45,6 +45,7 @@ $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of
 - The script warns when the pretended number of byzantine members is not possible within the scope of the system membership described in the services.txt
 - For each process, apart from the leader, the shell waits for the input of the user to declare the behaviour of each member - B for byzantine and C for correct. (Note that it is expected from the user to declare the same amount of byzantine members as it stated in the -NByzantine parameter)
 - In case the shell prompts an error upon running the script try ```chmod +x runService.sh``` and re-run the script as previously stated.
+- This script runs the desired amount of Services, and also runs the Client module.
 
 ### Suggested Parameters
 

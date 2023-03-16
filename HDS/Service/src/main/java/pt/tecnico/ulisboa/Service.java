@@ -2,6 +2,9 @@ package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -9,9 +12,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 
 public class Service extends Thread {
     private final Entry<String,Integer> processID;
@@ -30,8 +30,9 @@ public class Service extends Thread {
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private JSONObject message = null;
 
-    public Service(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes, boolean leader)
-            throws IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+    public Service(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes,
+                    boolean leader) throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException,
+                    IllegalBlockSizeException, BadPaddingException {
         this.processID = new AbstractMap.SimpleEntry<>(hostname, port);
         this.byzantine = byzantine;
         this.byzantineProcesses = byzantineProcesses;
@@ -57,7 +58,7 @@ public class Service extends Thread {
 
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidKeySpecException {
+            NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
 
         String behavior = System.getProperty("behaviour");
         String server = System.getProperty("server");
