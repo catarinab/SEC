@@ -24,7 +24,10 @@ public class Service extends Thread {
 
     private Blockchain blockchain = new Blockchain();
 
-    private volatile static int consensusCounter = 0;
+    class ConsensusCounter {
+        public volatile int counter = 0;
+    }
+    private ConsensusCounter consensusCounter = new ConsensusCounter();
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private JSONObject message = null;
 
@@ -86,7 +89,7 @@ public class Service extends Thread {
 
         Service service = new Service(hostname, port, behavior.equals("B"), byzantineProcesses, processes, leader);
         System.out.println(Service.class.getName());
-        while (true) service.receive();
+        service.receive();
     }
 
     public static void serviceUsage() {
@@ -110,14 +113,16 @@ public class Service extends Thread {
     }
 
     public void receive() throws IOException {
-        String message = this.apl.receive();
-        JSONObject jsonObject = new JSONObject(message);
-        String messageID = jsonObject.getString("mac");
-        if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
-        else if (!delivered.contains(messageID)) {
-            delivered.add(messageID);
-            Service thread = new Service(this, jsonObject);
-            thread.start();
+        while (true) {
+            String message = this.apl.receive();
+            JSONObject jsonObject = new JSONObject(message);
+            String messageID = jsonObject.getString("mac");
+            if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
+            else if (!delivered.contains(messageID)) {
+                delivered.add(messageID);
+                Service thread = new Service(this, jsonObject);
+                thread.start();
+            }
         }
     }
 
@@ -136,7 +141,7 @@ public class Service extends Thread {
             Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
             int consensusID;
             synchronized (this) {
-                consensusID = this.consensusCounter++;
+                consensusID = this.consensusCounter.counter++;
             }
 
             IstanbulBFT istanbulBFT;
@@ -152,9 +157,11 @@ public class Service extends Thread {
             catch (Exception e) {
                 e.printStackTrace();
             }
+            System.out.println("before" + this.consensusInstances);
         }
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
             IstanbulBFT istanbulBFT;
+            System.out.println("after" + this.consensusInstances + " " + this.message.getInt("consensusID"));
             try {
                 synchronized (istanbulBFT = this.consensusInstances.get(this.message.getInt("consensusID"))) {
                    istanbulBFT.algorithm2(command, inputValue);
