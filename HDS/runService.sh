@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mvn clean compile || exit 1
+mvn clean install compile -DskipTests || exit 1
 
 # Get command line arguments
 while [[ $# -gt 0 ]]
