@@ -64,8 +64,9 @@ public class APL {
             byte[] encryptedMac = Base64.getDecoder().decode(encryptedMacB64);
             byte[] decryptedMacReceived = decryptCipher.doFinal(encryptedMac);
             byte[] macResult = digest.digest((messageContent+command).getBytes());
-            if(!Arrays.toString(decryptedMacReceived).equals(Arrays.toString(macResult))){
+            if (!Arrays.toString(decryptedMacReceived).equals(Arrays.toString(macResult))) {
                 System.out.println("Wrong MAC.");
+                System.out.println(message);
                 System.out.println(Arrays.toString(decryptedMacReceived));
                 System.out.println(Arrays.toString(macResult));
                 throw new RuntimeException();

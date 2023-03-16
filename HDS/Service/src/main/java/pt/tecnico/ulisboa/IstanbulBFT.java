@@ -70,7 +70,7 @@ public class IstanbulBFT {
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", inputValue);
-            this.broadcast.doBroadcast(inputValue+"prepare", jsonObject.toString());
+            this.broadcast.doBroadcast(inputValue + "prepare", jsonObject.toString());
         }
         else if (command.equals("prepare") && !this.commitPhase && !this.decisionPhase) {
             this.prepareMessages.add(inputValue);
@@ -91,7 +91,7 @@ public class IstanbulBFT {
                     jsonObject.put("consensusID", this.consensusID);
                     //currentRound
                     jsonObject.put("inputValue", inputValue);
-                    this.broadcast.doBroadcast(inputValue+"commit", jsonObject.toString());
+                    this.broadcast.doBroadcast(inputValue + "commit", jsonObject.toString());
                 }
             }
         }

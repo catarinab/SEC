@@ -7,6 +7,7 @@ import java.security.*;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Scanner;
 
 import javax.crypto.*;
 
@@ -38,14 +39,23 @@ public class Client extends Thread{
 
     public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException,
             InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+
+        System.out.println(Client.class.getName());
+
         String path = System.getProperty("path");
         List<Entry<String,Integer>> processes = Utility.readProcesses(path).getValue();
 
-        System.out.println(Client.class.getName());
         Client client = new Client(processes);
         Client thread = new Client(client);
         thread.start();
-        client.send("ola");
+
+        // Loop to read messages from the user and send them to the server
+        while (true) {
+            Scanner input = new Scanner(System.in);
+            System.out.print("Enter a message to send to the server: ");
+            String message = input.nextLine();
+            client.send(message);
+        }
     }
 
     public void send(String message) throws IOException, InterruptedException, NoSuchPaddingException,
@@ -65,7 +75,7 @@ public class Client extends Thread{
     }
 
     public void run() {
-        for(int received = 0; received < numProcesses; received++){
+        while (true) {
             try {
                 receive();
             }
@@ -74,5 +84,4 @@ public class Client extends Thread{
             }
         }
     }
-
 }

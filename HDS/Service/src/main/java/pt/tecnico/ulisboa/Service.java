@@ -24,9 +24,9 @@ public class Service extends Thread {
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
 
-    private final Blockchain blockchain = new Blockchain();
+    private Blockchain blockchain = new Blockchain();
 
-    private int consensusCounter = 0;
+    private volatile static int consensusCounter = 0;
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private JSONObject message = null;
 
@@ -49,6 +49,7 @@ public class Service extends Thread {
         this.leader = father.leader;
         this.delivered = father.delivered;
         this.acksReceived = father.acksReceived;
+        this.blockchain = father.blockchain;
         this.consensusInstances = father.consensusInstances;
         this.consensusCounter = father.consensusCounter;
         this.message = message;
@@ -86,7 +87,7 @@ public class Service extends Thread {
 
         Service service = new Service(hostname, port, behavior.equals("B"), byzantineProcesses, processes, leader);
         System.out.println(Service.class.getName());
-        while(true) service.receive();
+        while (true) service.receive();
     }
 
     public static void serviceUsage() {
@@ -119,14 +120,18 @@ public class Service extends Thread {
         }
         System.out.println("This code is running in a thread with message: " + "(" + command + ") " + inputValue);
         if (command.equals("append")) {
-            this.consensusCounter++;
+            int consensusID;
+            synchronized (this) {
+                consensusID = this.consensusCounter++;
+            }
+
             IstanbulBFT istanbulBFT;
             try {
                 istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast,
                         this.byzantineProcesses, this.blockchain);
-                this.consensusInstances.put(this.consensusCounter, istanbulBFT);
-                istanbulBFT.algorithm1(this.consensusCounter, inputValue);
-                if (this.leader) istanbulBFT.algorithm2("pre-prepare", inputValue);
+                this.consensusInstances.put(consensusID, istanbulBFT);
+                TimeUnit.SECONDS.sleep(1);
+                istanbulBFT.algorithm1(consensusID, inputValue);
             }
             catch (Exception e) {
                 e.printStackTrace();
