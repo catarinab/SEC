@@ -27,7 +27,6 @@ public class StubbornLink {
         String messageID = Utility.getMacFromJson(message);
         int attempts = 0;
         while (!this.acksReceived.containsKey(messageID) && attempts < this.maxAttempts) {
-            System.out.println("Attempt: "+ attempts);
             this.fll.send(message.getBytes(), hostName, port);
             attempts++;
             TimeUnit.SECONDS.sleep(this.maxDelay);

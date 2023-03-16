@@ -17,7 +17,10 @@ import java.util.Map.Entry;
 
 public class IstanbulBFT {
     private final Entry<String,Integer> processID;
-    private boolean processLeader;
+    private final Entry<String,Integer> clientID;
+    private boolean leader;
+
+    private APL apl;
     private Broadcast broadcast;
     private int byzantineProcesses;
     private int consensusID;
@@ -34,10 +37,12 @@ public class IstanbulBFT {
 
     private Blockchain blockchain;
 
-    public IstanbulBFT(Entry<String,Integer> processID, boolean processLeader, Broadcast broadcast, int byzantineProcesses,
+    public IstanbulBFT(Entry<String,Integer> processID, Entry<String,Integer> clientID, boolean leader, APL apl, Broadcast broadcast, int byzantineProcesses,
                        Blockchain blockchain) throws NoSuchAlgorithmException, InvalidKeyException {
-        this.processLeader = processLeader;
         this.processID = processID;
+        this.clientID = clientID;
+        this.leader = leader;
+        this.apl = apl;
         this.broadcast = broadcast;
         this.byzantineProcesses = byzantineProcesses;
         this.blockchain = blockchain;
@@ -49,7 +54,7 @@ public class IstanbulBFT {
         this.consensusID = consensusCounter;
         //currentRound
 
-        if (this.processLeader) {
+        if (this.leader) {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("command", "pre-prepare");
             jsonObject.put("consensusID", this.consensusID);
@@ -113,6 +118,13 @@ public class IstanbulBFT {
                     //timerRound
                     this.blockchain.addValue(inputValue);
                     this.blockchain.printBlockchain();
+
+                    if (this.leader) {
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("command", "decide");
+                        jsonObject.put("inputValue", inputValue);
+                        this.apl.send(inputValue + "decide", jsonObject.toString(), clientID.getKey(), clientID.getValue());
+                    }
                 }
             }
         }

@@ -49,13 +49,13 @@ public class Client extends Thread{
         Client client = new Client(processes);
         Client thread = new Client(client);
         thread.start();
-
         // Loop to read messages from the user and send them to the server
         while (true) {
             Scanner input = new Scanner(System.in);
-            System.out.print("Enter a message to send to the server: ");
+            System.out.print("Enter a string to append to the blockchain: ");
             String message = input.nextLine();
             client.send(message);
+
         }
     }
 
@@ -69,10 +69,12 @@ public class Client extends Thread{
 
     public void receive() throws IOException {
         String message = this.apl.receive();
-        System.out.println(message);
         JSONObject jsonObject = new JSONObject(message);
         String messageID = jsonObject.getString("mac");
         if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
+        else if (jsonObject.getString("command").equals("decide")) {
+            System.out.println("\nThe string \"" + jsonObject.getString("inputValue") + "\" has been appended to the blockchain.");
+        }
     }
 
     public void run() {

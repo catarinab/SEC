@@ -121,6 +121,9 @@ public class Service extends Thread {
         }
         System.out.println("This code is running in a thread with message: " + "(" + command + ") " + inputValue);
         if (command.equals("append")) {
+            String receivedHostname = this.message.getString("hostname");
+            int receivedPort = this.message.getInt("port");
+            Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
             int consensusID;
             synchronized (this) {
                 consensusID = this.consensusCounter++;
@@ -128,20 +131,24 @@ public class Service extends Thread {
 
             IstanbulBFT istanbulBFT;
             try {
-                istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.broadcast,
+                istanbulBFT = new IstanbulBFT(this.processID, clientID, this.leader, this.apl, this.broadcast,
                         this.byzantineProcesses, this.blockchain);
-                this.consensusInstances.put(consensusID, istanbulBFT);
-                TimeUnit.SECONDS.sleep(1);
-                istanbulBFT.algorithm1(consensusID, inputValue);
+                synchronized (istanbulBFT) {
+                    this.consensusInstances.put(consensusID, istanbulBFT);
+                    TimeUnit.SECONDS.sleep(1);
+                    istanbulBFT.algorithm1(consensusID, inputValue);
+                }
             }
             catch (Exception e) {
                 e.printStackTrace();
             }
         }
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
+            IstanbulBFT istanbulBFT;
             try {
-                this.consensusInstances.get(this.message.getInt("consensusID")).algorithm2(command,
-                        this.message.getString("inputValue"));
+                synchronized (istanbulBFT = this.consensusInstances.get(this.message.getInt("consensusID"))) {
+                   istanbulBFT.algorithm2(command, inputValue);
+                }
             }
             catch (Exception e) {
                 e.printStackTrace();

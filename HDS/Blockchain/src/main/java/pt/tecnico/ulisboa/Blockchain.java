@@ -20,8 +20,11 @@ public class Blockchain {
 
     public synchronized void printBlockchain() {
         int i = 0;
-        for (Block block : this.chain){
-            System.out.println(i++ + " , " + block.getData());
+        int size = this.chain.size();
+        System.out.print("Blockchain: ");
+        for (Block block: this.chain) {
+            if (i == size - 1) System.out.println(i++ + "- " + block.getData());
+            else System.out.print(i++ + "- " + block.getData() + ", ");
         }
     }
     

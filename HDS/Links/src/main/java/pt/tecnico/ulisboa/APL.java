@@ -23,13 +23,13 @@ public class APL {
     private final StubbornLink stubbornLink;
     private final PublicKey publicKey;
     private final PrivateKey privateKey;
-    private final MessageDigest digest = MessageDigest.getInstance("SHA-256");
     public String hostname;
     public int port;
 
     public APL(String hostname, int port, ConcurrentHashMap<String, JSONObject> acksReceived) throws
             IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
             IllegalBlockSizeException, BadPaddingException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
         this.stubbornLink = new StubbornLink(hostname, port, 10, 1, acksReceived);
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
@@ -50,6 +50,7 @@ public class APL {
         JSONObject jsonToSend = new JSONObject(message);
         Cipher encryptCipher = Cipher.getInstance("RSA");
         encryptCipher.init(Cipher.ENCRYPT_MODE, this.privateKey);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] macResult = digest.digest(inputValue.getBytes());
         byte[] encryptedMac = encryptCipher.doFinal(macResult);
         jsonToSend.put("mac", Base64.getEncoder().encodeToString(encryptedMac));
@@ -63,7 +64,7 @@ public class APL {
         String received = this.stubbornLink.receive();
         JSONObject message = new JSONObject(received);
         String command = message.getString("command");
-        if(command.equals("ack")) return received;
+        if (command.equals("ack")) return received;
         try {
             String keyBase64 = message.getString("key");
             String encryptedMacB64 = message.getString("mac");
@@ -75,7 +76,7 @@ public class APL {
             String PKIKeyBase64 = keyStream.readLine();
             keyStream.close();
             if (!PKIKeyBase64.equals(keyBase64)) {
-                System.out.println("Wrong KEY!");
+                System.out.println("Wrong key.");
                 System.out.println(message);
                 System.out.println(PKIKeyBase64);
                 System.out.println(keyBase64);
@@ -86,7 +87,7 @@ public class APL {
                                     .generatePublic(new X509EncodedKeySpec(encodedKey));
             Cipher decryptCipher = Cipher.getInstance("RSA");
             decryptCipher.init(Cipher.DECRYPT_MODE, receivedKey);
-
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] encryptedMac = Base64.getDecoder().decode(encryptedMacB64);
             byte[] decryptedMacReceived = decryptCipher.doFinal(encryptedMac);
             byte[] macResult = digest.digest((messageContent+command).getBytes());

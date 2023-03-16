@@ -20,10 +20,8 @@ public class Broadcast {
 
     public void doBroadcast(String inputValue, String message) throws IOException, InterruptedException, NoSuchPaddingException,
             IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-        for(Entry<String, Integer> process: processes) {
-            System.out.println("Sending message: "+message);
-            System.out.println("sending to: "+process.getKey()+ process.getValue());
-            apl.send(inputValue, message, process.getKey(), process.getValue());
+        for (Entry<String, Integer> process: processes) {
+            this.apl.send(inputValue, message, process.getKey(), process.getValue());
         }
     }
 }
