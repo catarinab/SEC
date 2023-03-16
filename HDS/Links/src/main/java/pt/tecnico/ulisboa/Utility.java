@@ -2,9 +2,7 @@ package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
 
-import java.net.DatagramPacket;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Scanner;

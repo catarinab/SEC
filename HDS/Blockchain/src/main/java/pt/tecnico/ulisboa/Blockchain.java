@@ -1,4 +1,5 @@
 package pt.tecnico.ulisboa;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,6 +17,12 @@ public class Blockchain {
 
     public synchronized String getBlockchainIndex(int index) {
         return this.chain.get(index).getData();
+    }
+
+    public synchronized ArrayList<String> getBlockchainData() {
+        ArrayList<String> data = new ArrayList<>();
+        for (Block block: this.chain) data.add(block.getData());
+        return data;
     }
 
     public synchronized void printBlockchain() {

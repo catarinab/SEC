@@ -7,7 +7,6 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,7 +17,6 @@ public class Service extends Thread {
     private final boolean byzantine;
     private final int byzantineProcesses;
     private final boolean leader;
-
     private final APL apl;
     private final Broadcast broadcast;
     private ArrayList<String> delivered = new ArrayList<>();
@@ -99,6 +97,18 @@ public class Service extends Thread {
         System.exit(1);
     }
 
+    public boolean isInBlockchain(String data) {
+        return this.blockchain.getBlockchainData().contains(data);
+    }
+
+    public String getBlockchainIndex(int index) {
+        return this.blockchain.getBlockchainIndex(index);
+    }
+
+    public List<String> getBlockchainData() {
+        return this.blockchain.getBlockchainData();
+    }
+
     public void receive() throws IOException {
         String message = this.apl.receive();
         JSONObject jsonObject = new JSONObject(message);
@@ -154,5 +164,6 @@ public class Service extends Thread {
                 e.printStackTrace();
             }
         }
+        System.out.println(this.getBlockchainData());
     }
 }

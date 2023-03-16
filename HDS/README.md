@@ -50,7 +50,7 @@ $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of
 
 - `<NByzantine>`: 1
 - `<NService>`: 4
-- `<System>`: <path of user>/SEC/HDS/services.txt
+- `<System>`: <absolute path of user>/SEC/HDS/services.txt
 
 ## Clean
 
