@@ -27,9 +27,9 @@ localhost 1237
 
 ## Base Setup
 
-In the directory ```$ <path to project>/SEC/HDS/```
+First time running the program, in the directory ```$ <path to project>/SEC/HDS/```
 ```shell
-$ mvn clean install compile
+$ mvn install
 ```
 
 ---
@@ -38,7 +38,6 @@ $ mvn clean install compile
 
 In the directory ```$ <path to project>/SEC/HDS/```
 ```shell
-$ cd Service
 $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of members in the system> -System <path to services.txt file>
 ```
 
@@ -51,7 +50,7 @@ $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of
 
 - `<NByzantine>`: 1
 - `<NService>`: 4
-- `<System>`: ../services.txt
+- `<System>`: <path of user>/SEC/HDS/services.txt
 
 ## Clean
 

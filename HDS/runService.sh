@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mvn clean compile || exit 1
+
 # Get command line arguments
 while [[ $# -gt 0 ]]
 do
@@ -61,9 +63,9 @@ do
     fi
 
     # Run program with input and file line arguments
-    gnome-terminal --tab --title="Service $line" -- /bin/bash -c "cd $(pwd) && mvn compile exec:java -Dbehaviour=\"$input\" -Dserver=\"$line\" -Dpath=\"$System\"; exec /bin/bash"
+    gnome-terminal --tab --title="Service $line" -- /bin/bash -c "cd Service/ && mvn exec:java -Dbehaviour=\"$input\" -Dserver=\"$line\" -Dpath=\"$System\"; exec /bin/bash"
 
 done < "$System"
 
 # Create new terminal and run client program
-gnome-terminal --tab --title="Client" -- /bin/bash -c "cd ../Client && mvn compile exec:java -Dpath=\"$System\"; exec /bin/bash"
+gnome-terminal --tab --title="Client" -- /bin/bash -c "cd Client/ && mvn exec:java -Dpath=\"$System\"; exec /bin/bash"
