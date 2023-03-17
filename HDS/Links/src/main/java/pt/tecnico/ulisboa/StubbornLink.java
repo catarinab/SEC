@@ -37,4 +37,8 @@ public class StubbornLink {
     public String receive() throws IOException {
         return this.fll.receive();
     }
+
+    public FLL getFll() {
+        return fll;
+    }
 }

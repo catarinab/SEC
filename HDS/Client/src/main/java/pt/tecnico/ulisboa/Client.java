@@ -20,12 +20,12 @@ public class Client extends Thread{
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
 
 
-    public Client(List<Entry<String,Integer>> processes) throws IOException,
+    public Client(String hostname, int port, List<Entry<String,Integer>> processes) throws IOException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeyException {
-        this.processID = new AbstractMap.SimpleEntry<>("localhost", 4321);
+        this.processID = new AbstractMap.SimpleEntry<>(hostname, port);
         this.numProcesses = processes.size();
-        this.apl = new APL("localhost", 4321, acksReceived);
+        this.apl = new APL(hostname, port, acksReceived);
         this.broadcast = new Broadcast(processes, apl);
     }
 
@@ -43,10 +43,13 @@ public class Client extends Thread{
 
         System.out.println(Client.class.getName());
 
+        String hostname = System.getProperty("hostname");
+        int port = Integer.parseInt(System.getProperty("port"));
         String path = System.getProperty("path");
+
         List<Entry<String,Integer>> processes = Utility.readProcesses(path).getValue();
 
-        Client client = new Client(processes);
+        Client client = new Client(hostname, port, processes);
         Client thread = new Client(client);
         thread.start();
         // Loop to read messages from the user and send them to the server
@@ -75,6 +78,10 @@ public class Client extends Thread{
         else if (jsonObject.getString("command").equals("decide")) {
             System.out.println("\nThe string \"" + jsonObject.getString("inputValue") + "\" has been appended to the blockchain.");
         }
+    }
+
+    public APL getApl() {
+        return apl;
     }
 
     public void run() {

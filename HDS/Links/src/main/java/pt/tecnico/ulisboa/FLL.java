@@ -38,4 +38,7 @@ public class FLL {
         return message;
     }
 
+    public DatagramSocket getDs() {
+        return ds;
+    }
 }

@@ -18,6 +18,16 @@ case $key in
     shift
     shift
     ;;
+    -HostnameClient)
+    HostnameClient="$2"
+    shift
+    shift
+    ;;
+    -PortClient)
+    PortClient="$2"
+    shift
+    shift
+    ;;
     -System)
     System="$2"
     shift
@@ -68,4 +78,4 @@ do
 done < "$System"
 
 # Create new terminal and run client program
-gnome-terminal --tab --title="Client" -- /bin/bash -c "cd Client/ && mvn exec:java -Dpath=\"$System\"; exec /bin/bash"
+gnome-terminal --tab --title="Client" -- /bin/bash -c "cd Client/ && mvn exec:java -Dhostname=\"$HostnameClient\" -Dport=\"$PortClient\" -Dpath=\"$System\"; exec /bin/bash"

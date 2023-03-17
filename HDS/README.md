@@ -4,6 +4,8 @@
 
 - Maven 3.9.0
 - Java 13
+- JUnit5
+- gnome-terminal (for script)
 
 ## System Membership services.txt Setup
 The system membership is static for the entire system lifetime, including a predefined leader process.
@@ -38,7 +40,7 @@ $ mvn install
 
 In the directory ```$ <path to project>/SEC/HDS/```
 ```shell
-$ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of members in the system> -System <path to services.txt file>
+$ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of members in the system> -HostnameClient <localhost of client> -PortClient <port for client> -System <path to services.txt file>
 ```
 
 - The script warns when the pretended number of byzantine members is not possible within the scope of the system membership described in the services.txt
@@ -50,7 +52,13 @@ $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of
 
 - `<NByzantine>`: 1
 - `<NService>`: 4
+- `<HostnameClient >`: localhost
+- `<PortClient  >`: 4321
 - `<System>`: <absolute path of user>/SEC/HDS/services.txt
+
+```shell
+$ ./runService.sh -NByzantine 1 -NService 4 -HostnameClient localhost -PortClient 4321 -System /home/user/SEC/HDS/services.txt 
+```
 
 ## Clean
 
@@ -59,6 +67,26 @@ $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of
 $ mvn clean
 ```
 
-## To Run Tests
+## To Run Tests (aprox time: 2min 02sec )
 
-### To Run *Type of Tests*
+### To Run Tests For The First Time
+
+In the directory ```$ <path to project>/SEC/HDS/```
+```shell
+$ mvn clean install compile
+```
+
+### To Run Tests
+
+In the directory ```$ <path to project>/SEC/HDS/```
+```shell
+$ mvn clean test
+```
+
+- Test 1 noByzantineServers(): tests four correct members and a client sending one message
+- Test 2 oneByzantineServers(): tests three correct members, one byzantine member and a client sending one message
+- Test 3 twoByzantineServers(): tests six correct members, two byzantine members and a client sending one message
+- Test 4 twoMessageFourServersNoByzantine(): tests four correct members and a client sending two messages, one after another
+- Test 5 twoMessageFourServersOneByzantine(): test three correct members, one byzantine member and a client sending two messages, one after another
+- Test 6 twoClientsFourServersNoByzantine(): tests four correct members and two clients, each sending one message
+- Test 7 twoClientsFourServersOneByzantine(): tests three correct members, one byzantine member and two clients, each sending one message 

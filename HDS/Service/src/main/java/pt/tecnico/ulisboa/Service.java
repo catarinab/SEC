@@ -173,4 +173,8 @@ public class Service extends Thread {
         }
         System.out.println(this.getBlockchainData());
     }
+
+    public APL getApl() {
+        return this.apl;
+    }
 }

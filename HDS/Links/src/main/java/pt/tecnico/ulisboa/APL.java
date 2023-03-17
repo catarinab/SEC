@@ -103,4 +103,8 @@ public class APL {
         }
         return received;
     }
+
+    public StubbornLink getStubbornLink() {
+        return stubbornLink;
+    }
 }

@@ -13,9 +13,15 @@ import java.net.ServerSocket;
 //Used strictly for testing.
 public class ServiceAux extends Thread{
     private final Service server;
+    private boolean run = true;
 
     public ServiceAux(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes, boolean leader) throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         this.server = new Service(hostname, port, byzantine, byzantineProcesses, processes, leader);
+        this.run = true;
+    }
+
+    public Service getServer(){
+        return this.server;
     }
 
     public boolean isInBlockchain(String data) {
@@ -32,10 +38,12 @@ public class ServiceAux extends Thread{
 
     public void run() {
         try {
-            this.server.receive();
+            while(true){
+                this.server.receive();
+            }
+
         }
         catch (Exception e) {
-            e.printStackTrace();
         }
     }
 }
