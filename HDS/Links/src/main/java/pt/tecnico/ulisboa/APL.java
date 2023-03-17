@@ -14,8 +14,10 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
 //Por enquanto fica apenas PL.
@@ -27,8 +29,7 @@ public class APL {
     public int port;
 
     public APL(String hostname, int port, ConcurrentHashMap<String, JSONObject> acksReceived) throws
-            IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-            IllegalBlockSizeException, BadPaddingException {
+            IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         this.stubbornLink = new StubbornLink(hostname, port, 10, 1, acksReceived);
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
@@ -50,9 +51,11 @@ public class APL {
         JSONObject jsonToSend = new JSONObject(message);
         Cipher encryptCipher = Cipher.getInstance("RSA");
         encryptCipher.init(Cipher.ENCRYPT_MODE, this.privateKey);
+        String timestamp = new Date().toString();
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] macResult = digest.digest(inputValue.getBytes());
+        byte[] macResult = digest.digest((inputValue+timestamp).getBytes());
         byte[] encryptedMac = encryptCipher.doFinal(macResult);
+        jsonToSend.put("timestamp", timestamp);
         jsonToSend.put("mac", Base64.getEncoder().encodeToString(encryptedMac));
         jsonToSend.put("key", Base64.getEncoder().encodeToString(this.publicKey.getEncoded()));
         jsonToSend.put("hostname", this.hostname);
@@ -71,6 +74,7 @@ public class APL {
             String messageContent = message.getString("inputValue");
             String receivedHostname = message.getString("hostname");
             int receivedPort = message.getInt("port");
+            String timestamp = message.getString("timestamp");
             BufferedReader keyStream = new BufferedReader(new InputStreamReader(new FileInputStream
                     ("../"+receivedHostname+","+receivedPort+"key.txt"), StandardCharsets.UTF_8));
             String PKIKeyBase64 = keyStream.readLine();
@@ -90,7 +94,7 @@ public class APL {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] encryptedMac = Base64.getDecoder().decode(encryptedMacB64);
             byte[] decryptedMacReceived = decryptCipher.doFinal(encryptedMac);
-            byte[] macResult = digest.digest((messageContent+command).getBytes());
+            byte[] macResult = digest.digest((messageContent+command+timestamp).getBytes());
             if (!Arrays.toString(decryptedMacReceived).equals(Arrays.toString(macResult))) {
                 System.out.println("Wrong MAC.");
                 System.out.println(message);
