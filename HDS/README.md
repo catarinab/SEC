@@ -9,12 +9,11 @@
 
 ## System Membership services.txt Setup
 The system membership is static for the entire system lifetime, including a predefined leader process.
-The services.txt file describes the following regarding the system membership:
-- Maximum number of byzantine members the system supports (first line of services.txt)
+The services.txt file describes the following regarding the system membership (can be edited as long as it respects the file architecture):
+- Maximum number of byzantine members the system supports 3f+1 (first line of services.txt)
 - The services that are a part of the system, line by line, described as ```hostname port```
 - The first service described in the .txt file is the leader (second line of services.txt)
 - Make sure a new line at the end of the file is added to the services.txt file
-- Make sure its path is ```$ <path to project>/SEC/HDS/services.txt```
 
 Default services.txt file:
 
@@ -85,8 +84,9 @@ $ mvn clean test
 
 - Test 1 noByzantineServers(): tests four correct members and a client sending one message
 - Test 2 oneByzantineServers(): tests three correct members, one byzantine member and a client sending one message
-- Test 3 twoByzantineServers(): tests six correct members, two byzantine members and a client sending one message
+- Test 3 twoByzantineServers(): tests five correct members, two byzantine members and a client sending one message
 - Test 4 twoMessageFourServersNoByzantine(): tests four correct members and a client sending two messages, one after another
 - Test 5 twoMessageFourServersOneByzantine(): test three correct members, one byzantine member and a client sending two messages, one after another
 - Test 6 twoClientsFourServersNoByzantine(): tests four correct members and two clients, each sending one message
-- Test 7 twoClientsFourServersOneByzantine(): tests three correct members, one byzantine member and two clients, each sending one message 
+- Test 7 twoClientsFourServersOneByzantine(): tests three correct members, one byzantine member and two clients, each sending one message
+- If by any chance tests are failing because they require more time to run the algorithm adjust the values inside Thread.sleep(<value>) in each test of the ServiceTest (under the directory /SEC/HDS/Service/src/test).

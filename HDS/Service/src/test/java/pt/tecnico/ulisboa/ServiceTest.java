@@ -26,9 +26,9 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ServiceTest {
 
     List<Map.Entry<String,Integer>> processesFourServers;
-    List<Map.Entry<String,Integer>> processesSixServers;
+    List<Map.Entry<String,Integer>> processesSevenServers;
     Client clientFourServers;
-    Client clientSixServers;
+    Client clientSevenServers;
     Client secondClientFourServers;
 
     @BeforeAll
@@ -39,9 +39,9 @@ public class ServiceTest {
         System.setOut(new PrintStream(new ByteArrayOutputStream()));
 
         processesFourServers = Utility.readProcesses("../TestConfig/services_test1.txt").getValue();
-        processesSixServers = Utility.readProcesses("../TestConfig/services_test2.txt").getValue();
+        processesSevenServers = Utility.readProcesses("../TestConfig/services_test2.txt").getValue();
         clientFourServers = new Client("localhost", 4321, processesFourServers);
-        clientSixServers = new Client("localhost", 4322, processesSixServers);
+        clientSevenServers = new Client("localhost", 4322, processesSevenServers);
         secondClientFourServers = new Client("localhost", 4323, processesFourServers);
     }
 
@@ -115,7 +115,7 @@ public class ServiceTest {
         String valueToAppend = "ola!";
         clientFourServers.send(valueToAppend);
 
-        Thread.sleep(15000);
+        Thread.sleep(10000);
 
         assertEquals(valueToAppend, server1.getBlockchainIndex(0));
         assertTrue(server1.isInBlockchain(valueToAppend));
@@ -133,8 +133,8 @@ public class ServiceTest {
         server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
     }
 
-    @Test
-    @DisplayName("Testing: six correct members, two byzantine members and a client sending one message")
+   @Test
+    @DisplayName("Testing: five correct members, two byzantine members and a client sending one message")
     public void twoByzantineServers() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
 
@@ -144,27 +144,30 @@ public class ServiceTest {
         ServiceAux server4 = null;
         ServiceAux server5 = null;
         ServiceAux server6 = null;
+        ServiceAux server7 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesSixServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, 1, processesSevenServers, true);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, 1, processesSixServers, false);
+        server2 = new ServiceAux("localhost", 1235, true, 1, processesSevenServers, false);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, true, 1, processesSixServers, false);
+        server3 = new ServiceAux("localhost", 1236, true, 1, processesSevenServers, false);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesSixServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, 1, processesSevenServers, false);
         server4.start();
-        server5 = new ServiceAux("localhost", 1238, false, 1, processesSixServers, false);
+        server5 = new ServiceAux("localhost", 1238, false, 1, processesSevenServers, false);
         server5.start();
-        server6 = new ServiceAux("localhost", 1239, false, 1, processesSixServers, false);
+        server6 = new ServiceAux("localhost", 1239, false, 1, processesSevenServers, false);
         server6.start();
+        server7 = new ServiceAux("localhost", 4446, false, 1, processesSevenServers, false);
+        server7.start();
 
-        Client thread = new Client(clientSixServers);
+        Client thread = new Client(clientSevenServers);
         thread.start();
         String valueToAppend = "ola!";
-        clientSixServers.send(valueToAppend);
+        clientSevenServers.send(valueToAppend);
 
-        Thread.sleep(15000);
+        Thread.sleep(17000);
 
         assertEquals(valueToAppend, server1.getBlockchainIndex(0));
         assertTrue(server1.isInBlockchain(valueToAppend));
@@ -176,6 +179,8 @@ public class ServiceTest {
         assertTrue(server5.isInBlockchain(valueToAppend));
         assertEquals(valueToAppend, server6.getBlockchainIndex(0));
         assertTrue(server6.isInBlockchain(valueToAppend));
+        assertEquals(valueToAppend, server7.getBlockchainIndex(0));
+        assertTrue(server7.isInBlockchain(valueToAppend));
 
         thread.interrupt();
 
@@ -185,6 +190,7 @@ public class ServiceTest {
         server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server5.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server6.getServer().getApl().getStubbornLink().getFll().getDs().close();
+        server7.getServer().getApl().getStubbornLink().getFll().getDs().close();
     }
 
     @Test
@@ -214,7 +220,7 @@ public class ServiceTest {
         clientFourServers.send(valueToAppend1);
         clientFourServers.send(valueToAppend2);
 
-        Thread.sleep(15000);
+        Thread.sleep(10000);
 
         assertEquals(valueToAppend1, server1.getBlockchainIndex(0));
         assertTrue(server1.isInBlockchain(valueToAppend1));
@@ -269,7 +275,7 @@ public class ServiceTest {
         clientFourServers.send(valueToAppend1);
         clientFourServers.send(valueToAppend2);
 
-        Thread.sleep(15000);
+        Thread.sleep(10000);
 
         assertEquals(valueToAppend1, server1.getBlockchainIndex(0));
         assertTrue(server1.isInBlockchain(valueToAppend1));
