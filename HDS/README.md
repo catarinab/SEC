@@ -28,7 +28,7 @@ localhost 1237
 
 ## Base Setup
 
-First time running the program, in the directory ```$ <path to project>/SEC/HDS/```
+First time running the program, in the directory ```$ <path to project>/HDS/```
 ```shell
 $ mvn install
 ```
@@ -37,7 +37,7 @@ $ mvn install
 
 ## To Run Service and Client
 
-In the directory ```$ <path to project>/SEC/HDS/```
+In the directory ```$ <path to project>/HDS/```
 ```shell
 $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of members in the system> -HostnameClient <localhost of client> -PortClient <port for client> -System <path to services.txt file>
 ```
@@ -53,15 +53,15 @@ $ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of
 - `<NService>`: 4
 - `<HostnameClient >`: localhost
 - `<PortClient  >`: 4321
-- `<System>`: <absolute path of user>/SEC/HDS/services.txt
+- `<System>`: <absolute path of user>/HDS/services.txt
 
 ```shell
-$ ./runService.sh -NByzantine 1 -NService 4 -HostnameClient localhost -PortClient 4321 -System /home/user/SEC/HDS/services.txt 
+$ ./runService.sh -NByzantine 1 -NService 4 -HostnameClient localhost -PortClient 4321 -System /home/user/HDS/services.txt 
 ```
 
 ## Clean
 
-- After each run we suggest to do in the directory ```$ <path to project>/SEC/HDS/```
+- After each run we suggest to do in the directory ```$ <path to project>/HDS/```
 ```shell
 $ mvn clean
 ```
@@ -70,14 +70,14 @@ $ mvn clean
 
 ### To Run Tests For The First Time
 
-In the directory ```$ <path to project>/SEC/HDS/```
+In the directory ```$ <path to project>/HDS/```
 ```shell
 $ mvn clean install compile
 ```
 
 ### To Run Tests
 
-In the directory ```$ <path to project>/SEC/HDS/```
+In the directory ```$ <path to project>/HDS/```
 ```shell
 $ mvn clean test
 ```
