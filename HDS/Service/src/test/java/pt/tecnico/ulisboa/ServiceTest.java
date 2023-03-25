@@ -19,14 +19,18 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
+import java.util.Map.Entry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ServiceTest {
-
+    int byzantineProcessesFourServers;
     List<Map.Entry<String,Integer>> processesFourServers;
+    Map.Entry<String,Integer> leaderFourServers;
+    int byzantineProcessesSevenServers;
     List<Map.Entry<String,Integer>> processesSevenServers;
+    Map.Entry<String,Integer> leaderSevenServers;
     Client clientFourServers;
     Client clientSevenServers;
     Client secondClientFourServers;
@@ -38,11 +42,20 @@ public class ServiceTest {
         System.out.println("Running tests... might take a while");
         System.setOut(new PrintStream(new ByteArrayOutputStream()));
 
-        processesFourServers = Utility.readProcesses("../TestConfig/services_test1.txt").getValue();
-        processesSevenServers = Utility.readProcesses("../TestConfig/services_test2.txt").getValue();
-        clientFourServers = new Client("localhost", 4321, processesFourServers);
-        clientSevenServers = new Client("localhost", 4322, processesSevenServers);
-        secondClientFourServers = new Client("localhost", 4323, processesFourServers);
+        Entry<Integer, List<Entry<String,Integer>>> fileSetupFourServers = Utility.readProcesses("../TestConfig/services_test1.txt");
+        byzantineProcessesFourServers = fileSetupFourServers.getKey();
+        processesFourServers = fileSetupFourServers.getValue();
+        leaderFourServers = processesFourServers.get(0);
+
+
+        Entry<Integer, List<Entry<String,Integer>>> fileSetupSevenServers = Utility.readProcesses("../TestConfig/services_test2.txt");
+        byzantineProcessesSevenServers = fileSetupSevenServers.getKey();
+        processesSevenServers = fileSetupSevenServers.getValue();
+        leaderSevenServers = processesSevenServers.get(0);
+
+        clientFourServers = new Client("localhost", 4321, processesFourServers, byzantineProcessesFourServers);
+        clientSevenServers = new Client("localhost", 4322, processesSevenServers, byzantineProcessesSevenServers);
+        secondClientFourServers = new Client("localhost", 4323, processesFourServers, byzantineProcessesFourServers);
     }
 
 
@@ -56,13 +69,13 @@ public class ServiceTest {
         ServiceAux server4 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesFourServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, false, 1, processesFourServers, false);
+        server2 = new ServiceAux("localhost", 1235, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, 1, processesFourServers, false);
+        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesFourServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
         Client thread = new Client(clientFourServers);
@@ -101,13 +114,13 @@ public class ServiceTest {
         ServiceAux server4 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesFourServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, 1, processesFourServers, false);
+        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, 1, processesFourServers, false);
+        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesFourServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
         Client thread = new Client(clientFourServers);
@@ -147,19 +160,19 @@ public class ServiceTest {
         ServiceAux server7 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesSevenServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesSevenServers, processesSevenServers, true, leaderSevenServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, 1, processesSevenServers, false);
+        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, true, 1, processesSevenServers, false);
+        server3 = new ServiceAux("localhost", 1236, true, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesSevenServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
         server4.start();
-        server5 = new ServiceAux("localhost", 1238, false, 1, processesSevenServers, false);
+        server5 = new ServiceAux("localhost", 1238, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
         server5.start();
-        server6 = new ServiceAux("localhost", 1239, false, 1, processesSevenServers, false);
+        server6 = new ServiceAux("localhost", 1239, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
         server6.start();
-        server7 = new ServiceAux("localhost", 4446, false, 1, processesSevenServers, false);
+        server7 = new ServiceAux("localhost", 4446, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
         server7.start();
 
         Client thread = new Client(clientSevenServers);
@@ -204,13 +217,13 @@ public class ServiceTest {
         ServiceAux server4 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesFourServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, false, 1, processesFourServers, false);
+        server2 = new ServiceAux("localhost", 1235, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, 1, processesFourServers, false);
+        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesFourServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
         Client thread = new Client(clientFourServers);
@@ -259,13 +272,13 @@ public class ServiceTest {
         ServiceAux server4 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesFourServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, 1, processesFourServers, false);
+        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, 1, processesFourServers, false);
+        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesFourServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
         Client thread = new Client(clientFourServers);
@@ -312,13 +325,13 @@ public class ServiceTest {
         ServiceAux server4 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesFourServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, false, 1, processesFourServers, false);
+        server2 = new ServiceAux("localhost", 1235, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, 1, processesFourServers, false);
+        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesFourServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
         Client thread = new Client(clientFourServers);
@@ -362,13 +375,13 @@ public class ServiceTest {
         ServiceAux server4 = null;
 
         //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, 1, processesFourServers, true);
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, 1, processesFourServers, false);
+        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, 1, processesFourServers, false);
+        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, 1, processesFourServers, false);
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
         Client thread = new Client(clientFourServers);

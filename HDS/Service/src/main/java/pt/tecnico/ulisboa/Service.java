@@ -14,9 +14,11 @@ import java.util.concurrent.TimeUnit;
 
 public class Service extends Thread {
     private final Entry<String,Integer> processID;
+    private final List<Entry<String,Integer>> processes;
     private final boolean byzantine;
     private final int byzantineProcesses;
     private final boolean leader;
+    private final Entry<String,Integer> leaderID;
     private final APL apl;
     private final Broadcast broadcast;
     private ArrayList<String> delivered = new ArrayList<>();
@@ -32,23 +34,27 @@ public class Service extends Thread {
     private JSONObject message = null;
 
     public Service(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes,
-                    boolean leader) throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException,
-                    IllegalBlockSizeException, BadPaddingException {
+                   boolean leader, Entry<String,Integer> leaderID) throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException,
+            IllegalBlockSizeException, BadPaddingException {
         this.processID = new AbstractMap.SimpleEntry<>(hostname, port);
+        this.processes = processes;
         this.byzantine = byzantine;
         this.byzantineProcesses = byzantineProcesses;
         this.apl = new APL(hostname, port, acksReceived);
         this.leader = leader;
+        this.leaderID = leaderID;
         this.broadcast = new Broadcast(processes, this.apl);
     }
 
     public Service(Service father, JSONObject message) {
         this.processID = father.processID;
+        this.processes = father.processes;
         this.byzantine = father.byzantine;
         this.byzantineProcesses = father.byzantineProcesses;
         this.apl = father.apl;
         this.broadcast = father.broadcast;
         this.leader = father.leader;
+        this.leaderID = father.leaderID;
         this.delivered = father.delivered;
         this.acksReceived = father.acksReceived;
         this.blockchain = father.blockchain;
@@ -69,7 +75,7 @@ public class Service extends Thread {
         String hostname = serverInfo[0];
         int port = Integer.parseInt(serverInfo[1]);
 
-        if(serverInfo.length != 2 || (!behavior.equals("B") && !behavior.equals("C"))) serviceUsage();
+        if (serverInfo.length != 2 || (!behavior.equals("B") && !behavior.equals("C"))) serviceUsage();
         try {
             hostname = serverInfo[0];
             port = Integer.parseInt(serverInfo[1]);
@@ -87,7 +93,7 @@ public class Service extends Thread {
             System.exit(1);
         }
 
-        Service service = new Service(hostname, port, behavior.equals("B"), byzantineProcesses, processes, leader);
+        Service service = new Service(hostname, port, behavior.equals("B"), byzantineProcesses, processes, leader, processes.get(0));
         System.out.println(Service.class.getName());
         service.receive();
     }
@@ -129,6 +135,8 @@ public class Service extends Thread {
     public void run() {
         String command = this.message.getString("command");
         String inputValue = this.message.getString("inputValue");
+        String receivedHostname = this.message.getString("hostname");
+        int receivedPort = this.message.getInt("port");
         if (byzantine) {
             StringBuilder reverse = new StringBuilder();
             for (int i = 0; i < inputValue.length(); i++) reverse.insert(0, inputValue.charAt(i));
@@ -136,8 +144,6 @@ public class Service extends Thread {
         }
         System.out.println("This code is running in a thread with message: " + "(" + command + ") " + inputValue);
         if (command.equals("append")) {
-            String receivedHostname = this.message.getString("hostname");
-            int receivedPort = this.message.getInt("port");
             Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
             int consensusID;
             synchronized (this) {
@@ -146,7 +152,7 @@ public class Service extends Thread {
 
             IstanbulBFT istanbulBFT;
             try {
-                istanbulBFT = new IstanbulBFT(this.processID, clientID, this.leader, this.apl, this.broadcast,
+                istanbulBFT = new IstanbulBFT(this.processID, clientID, this.leader, this.leaderID, this.apl, this.broadcast,
                         this.byzantineProcesses, this.blockchain);
                 synchronized (istanbulBFT) {
                     this.consensusInstances.put(consensusID, istanbulBFT);
@@ -157,21 +163,25 @@ public class Service extends Thread {
             catch (Exception e) {
                 e.printStackTrace();
             }
-            System.out.println("before" + this.consensusInstances);
         }
         else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
+            Entry<String,Integer> receivedProcess = null;
+            for (Entry<String,Integer> process: this.processes) {
+                if (process.getKey().equals(receivedHostname) && process.getValue() == receivedPort) {
+                    receivedProcess = process;
+                    break;
+                }
+            }
             IstanbulBFT istanbulBFT;
-            System.out.println("after" + this.consensusInstances + " " + this.message.getInt("consensusID"));
             try {
                 synchronized (istanbulBFT = this.consensusInstances.get(this.message.getInt("consensusID"))) {
-                   istanbulBFT.algorithm2(command, inputValue);
+                    istanbulBFT.algorithm2(command, inputValue, receivedProcess);
                 }
             }
             catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        System.out.println(this.getBlockchainData());
     }
 
     public APL getApl() {

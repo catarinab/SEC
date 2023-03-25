@@ -14,20 +14,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class IstanbulBFT {
     private final Entry<String,Integer> processID;
     private final Entry<String,Integer> clientID;
     private boolean leader;
+    private final Entry<String,Integer> leaderID;
 
     private APL apl;
     private Broadcast broadcast;
     private int byzantineProcesses;
     private int consensusID;
 
-    private ArrayList<String> prepareMessages = new ArrayList<>();
+    private ConcurrentHashMap<Entry<String,Integer>,String> prepareMessages = new ConcurrentHashMap<>();
     private boolean commitPhase = false;
-    private ArrayList<String> commitMessages = new ArrayList<>();
+    private ConcurrentHashMap<Entry<String,Integer>,String> commitMessages = new ConcurrentHashMap<>();
     private boolean decisionPhase = false;
 
     //currentRound
@@ -37,11 +39,12 @@ public class IstanbulBFT {
 
     private Blockchain blockchain;
 
-    public IstanbulBFT(Entry<String,Integer> processID, Entry<String,Integer> clientID, boolean leader, APL apl, Broadcast broadcast, int byzantineProcesses,
+    public IstanbulBFT(Entry<String,Integer> processID, Entry<String,Integer> clientID, boolean leader, Entry<String,Integer> leaderID, APL apl, Broadcast broadcast, int byzantineProcesses,
                        Blockchain blockchain) throws NoSuchAlgorithmException, InvalidKeyException {
         this.processID = processID;
         this.clientID = clientID;
         this.leader = leader;
+        this.leaderID = leaderID;
         this.apl = apl;
         this.broadcast = broadcast;
         this.byzantineProcesses = byzantineProcesses;
@@ -65,10 +68,10 @@ public class IstanbulBFT {
         //timerRound
     }
 
-    public synchronized void algorithm2(String command, String inputValue) throws IOException, InterruptedException,
+    public synchronized void algorithm2(String command, String inputValue, Entry<String,Integer> receivedProcess) throws IOException, InterruptedException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeyException {
-        if (command.equals("pre-prepare")) {
+        if (command.equals("pre-prepare") && this.leaderID.equals(receivedProcess)) {
             //timerRound
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("command", "prepare");
@@ -77,13 +80,13 @@ public class IstanbulBFT {
             jsonObject.put("inputValue", inputValue);
             this.broadcast.doBroadcast(inputValue + "prepare", jsonObject.toString());
         }
-        else if (command.equals("prepare") && !this.commitPhase && !this.decisionPhase) {
-            this.prepareMessages.add(inputValue);
+        else if (command.equals("prepare") && !this.prepareMessages.containsKey(receivedProcess) && !this.commitPhase && !this.decisionPhase) {
+            this.prepareMessages.put(receivedProcess, inputValue);
             int quorumSize = 2 * this.byzantineProcesses + 1;
             if (this.prepareMessages.size() >= quorumSize) {
                 int validCounter = 0;
-                for (String message: this.prepareMessages) {
-                    if (message.equals(inputValue)) validCounter++;
+                for (Entry<String,Integer> key: this.prepareMessages.keySet()) {
+                    if (this.prepareMessages.get(key).equals(inputValue)) validCounter++;
                 }
                 if (validCounter >= quorumSize) {
                     this.commitPhase = true;
@@ -100,16 +103,16 @@ public class IstanbulBFT {
                 }
             }
         }
-        else if (command.equals("commit") && !decisionPhase) {
+        else if (command.equals("commit") && !this.commitMessages.containsKey(receivedProcess) && !decisionPhase) {
             //timerRound
-            this.commitMessages.add(inputValue);
+            this.commitMessages.put(receivedProcess, inputValue);
 
             int quorumSize = 2 * this.byzantineProcesses + 1;
             if (this.commitMessages.size() >= quorumSize) {
                 int validCounter = 0;
 
-                for (String message : this.commitMessages) {
-                    if (message.equals(inputValue)) validCounter++;
+                for (Entry<String,Integer> key: this.commitMessages.keySet()) {
+                    if (this.commitMessages.get(key).equals(inputValue)) validCounter++;
                 }
                 if (validCounter >= quorumSize) {
                     this.decisionPhase = true;
@@ -119,12 +122,11 @@ public class IstanbulBFT {
                     this.blockchain.addValue(inputValue);
                     this.blockchain.printBlockchain();
 
-                    if (this.leader) {
-                        JSONObject jsonObject = new JSONObject();
-                        jsonObject.put("command", "decide");
-                        jsonObject.put("inputValue", inputValue);
-                        this.apl.send(inputValue + "decide", jsonObject.toString(), clientID.getKey(), clientID.getValue());
-                    }
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("command", "decide");
+                    jsonObject.put("consensusID", this.consensusID);
+                    jsonObject.put("inputValue", inputValue);
+                    this.apl.send(inputValue + "decide", jsonObject.toString(), clientID.getKey(), clientID.getValue());
                 }
             }
         }

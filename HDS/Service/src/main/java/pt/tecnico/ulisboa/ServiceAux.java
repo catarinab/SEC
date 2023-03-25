@@ -15,8 +15,8 @@ public class ServiceAux extends Thread{
     private final Service server;
     private boolean run = true;
 
-    public ServiceAux(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes, boolean leader) throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-        this.server = new Service(hostname, port, byzantine, byzantineProcesses, processes, leader);
+    public ServiceAux(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes, boolean leader, Entry<String,Integer> leaderID) throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+        this.server = new Service(hostname, port, byzantine, byzantineProcesses, processes, leader, leaderID);
         this.run = true;
     }
 

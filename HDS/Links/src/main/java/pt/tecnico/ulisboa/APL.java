@@ -31,7 +31,7 @@ public class APL {
     public APL(String hostname, int port, ConcurrentHashMap<String, JSONObject> acksReceived) throws
             IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        this.stubbornLink = new StubbornLink(hostname, port, 10, 1, acksReceived);
+        this.stubbornLink = new StubbornLink(hostname, port, 10, 1.1, acksReceived);
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
         KeyPair pair = generator.generateKeyPair();

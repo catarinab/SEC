@@ -11,25 +11,30 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StubbornLink {
     private final FLL fll;
+    private double delay;
     private final int maxAttempts;
-    private final int maxDelay;
     private ConcurrentHashMap<String, JSONObject> acksReceived;
 
-    public StubbornLink(String hostname, int port, int maxAttempts, int maxDelay, ConcurrentHashMap<String, JSONObject> acksReceived)
+    public StubbornLink(String hostname, int port, int maxAttempts, double delay, ConcurrentHashMap<String, JSONObject> acksReceived)
             throws SocketException, UnknownHostException {
         this.maxAttempts = maxAttempts;
-        this.maxDelay = maxDelay;
+        this.delay = delay;
         this.fll = new FLL(hostname, port);
         this.acksReceived = acksReceived;
     }
 
     public void send(String message, String hostName, int port) throws IOException, InterruptedException {
         String messageID = Utility.getMacFromJson(message);
-        int attempts = 0;
-        while (!this.acksReceived.containsKey(messageID) && attempts < this.maxAttempts) {
+        int attempts = this.maxAttempts;
+        while (!this.acksReceived.containsKey(messageID)) {
+            if (attempts == 0) {
+                attempts = this.maxAttempts;
+                this.delay *= this.delay; //increase delay exponentally
+            }
             this.fll.send(message.getBytes(), hostName, port);
-            attempts++;
-            TimeUnit.SECONDS.sleep(this.maxDelay);
+            attempts--;
+            long delay = (long) this.delay;
+            TimeUnit.SECONDS.sleep(delay);
         }
        this.acksReceived.remove(messageID);
     }
