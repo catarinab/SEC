@@ -92,7 +92,7 @@ public class Client extends Thread{
             if (!this.consensusDecided.contains(consensusID)) {
                 String inputValue = jsonObject.getString("inputValue");
                 Entry<String, Integer> receivedProcess = null;
-                for (Entry<String, Integer> process : this.processes) {
+                for (Entry<String, Integer> process: this.processes) {
                     if (process.getKey().equals(receivedHostname) && process.getValue() == receivedPort) {
                         receivedProcess = process;
                         break;
@@ -105,11 +105,11 @@ public class Client extends Thread{
                 else if (!this.decideMessages.get(consensusID).containsKey(receivedProcess)) {
                     this.decideMessages.get(consensusID).put(receivedProcess, inputValue);
                     int quorumSize = 2 * this.byzantineProcesses + 1;
-                    if (this.decideMessages.size() >= quorumSize) {
+                    if (this.decideMessages.get(consensusID).size() >= quorumSize) {
                         int validCounter = 0;
 
                         for (Entry<String, Integer> key: this.decideMessages.get(consensusID).keySet()) {
-                            if (this.decideMessages.get(key).equals(inputValue)) validCounter++;
+                            if (this.decideMessages.get(consensusID).get(key).equals(inputValue)) validCounter++;
                         }
                         if (validCounter >= quorumSize) {
                             this.decideMessages.remove(consensusID);
