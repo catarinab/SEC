@@ -25,8 +25,7 @@ public class Client extends Thread{
 
 
     public Client(String hostname, int port, List<Entry<String,Integer>> processes, int byzantineProcesses) throws IOException,
-            NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
-            InvalidKeyException {
+            NoSuchAlgorithmException {
         this.processID = new AbstractMap.SimpleEntry<>(hostname, port);
         this.numProcesses = processes.size();
         this.processes = processes;
@@ -35,7 +34,7 @@ public class Client extends Thread{
         this.broadcast = new Broadcast(processes, apl);
     }
 
-    public Client(Client client) throws NoSuchAlgorithmException {
+    public Client(Client client) {
         this.processID = client.processID;
         this.numProcesses = client.numProcesses;
         this.processes = client.processes;
@@ -99,7 +98,7 @@ public class Client extends Thread{
                         break;
                     }
                 }
-                if (!this.decideMessages.contains(consensusID)) {
+                if (!this.decideMessages.containsKey(consensusID)) {
                     this.decideMessages.put(consensusID, new ConcurrentHashMap<>());
                     this.decideMessages.get(consensusID).put(receivedProcess, inputValue);
                 }
