@@ -5,14 +5,23 @@ import java.util.List;
 
 public class Blockchain {
     private final LinkedList<Block> chain;
+    private Block currBlock;
+    private int maxTransactions;
 
-    public Blockchain() {
+    public Blockchain(int maxTransactions) {
         this.chain = new LinkedList<Block>();
+        this.currBlock = new Block("", maxTransactions);
+        this.maxTransactions = maxTransactions;
     }
 
-    public synchronized void addValue(String inputValue) {
-        String lastHash = ((this.chain.size() == 0) ? "" : this.chain.getLast().getHash());
-        this.chain.add(new Block(lastHash, inputValue));
+    public void addValue(TransactionDTO transaction) {
+        if(!this.currBlock.addTransaction(transaction)) {
+            this.chain.add(this.currBlock);
+            String previousHash = this.currBlock.getHash();
+            this.currBlock = new Block(previousHash, this.maxTransactions);
+            this.currBlock.addTransaction(transaction);
+        }
+
     }
 
     public synchronized String getBlockchainIndex(int index) {

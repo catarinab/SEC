@@ -24,7 +24,7 @@ public class Service extends Thread {
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
 
-    private Blockchain blockchain = new Blockchain();
+    private Blockchain blockchain = new Blockchain(10);
 
     class ConsensusCounter {
         public volatile int counter = 0;
@@ -34,8 +34,7 @@ public class Service extends Thread {
     private JSONObject message = null;
 
     public Service(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes,
-                   boolean leader, Entry<String,Integer> leaderID) throws IOException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException,
-            IllegalBlockSizeException, BadPaddingException {
+                   boolean leader, Entry<String,Integer> leaderID) throws IOException, NoSuchAlgorithmException {
         this.processID = new AbstractMap.SimpleEntry<>(hostname, port);
         this.processes = processes;
         this.byzantine = byzantine;
