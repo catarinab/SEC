@@ -23,13 +23,18 @@ public class Service extends Thread {
     private final Broadcast broadcast;
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
-
     private Blockchain blockchain = new Blockchain(10);
+    //current state of accounts
+    private final ConcurrentHashMap<String, Account> accounts = new ConcurrentHashMap<>();
 
     class ConsensusCounter {
         public volatile int counter = 0;
     }
+    class CurrentConsensus {
+        public volatile int id = 0;
+    }
     private ConsensusCounter consensusCounter = new ConsensusCounter();
+    private CurrentConsensus currentConsensus = new CurrentConsensus();
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private JSONObject message = null;
 
@@ -59,6 +64,7 @@ public class Service extends Thread {
         this.blockchain = father.blockchain;
         this.consensusInstances = father.consensusInstances;
         this.consensusCounter = father.consensusCounter;
+        this.currentConsensus = father.currentConsensus;
         this.message = message;
     }
 
@@ -104,7 +110,29 @@ public class Service extends Thread {
         System.out.println("behavior: C (Correct) or B (Byzantine).");
         System.exit(1);
     }
+    public void create_account(PublicKey publicKey) {
+        this.accounts.put(publicKey.toString(), new Account(publicKey));
+    }
+    public int check_balance(PublicKey key) {
+        return this.accounts.get(key.toString()).check_balance();
+    }
 
+    //Como verificar q é mesmo a pessoa -> usar public key da source
+    public boolean transfer(PublicKey source, PublicKey destination, int amount) {
+        Account sourceAcc = this.accounts.get(source.toString());
+        Account destinationAcc = this.accounts.get(destination.toString());
+        if(amount > 0) {
+            if(sourceAcc.check_balance() - amount < 0) return false;
+            sourceAcc.removeBalance(amount);
+            destinationAcc.addBalance(amount);
+        }
+        else if(amount < 0) {
+            if(destinationAcc.check_balance() - amount < 0) return false;
+            destinationAcc.removeBalance(amount);
+            sourceAcc.addBalance(amount);
+        }
+        return true;
+    }
     public boolean isInBlockchain(String data) {
         return this.blockchain.getBlockchainData().contains(data);
     }
@@ -145,14 +173,24 @@ public class Service extends Thread {
         if (command.equals("append")) {
             Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
             int consensusID;
-            synchronized (this) {
+            synchronized (this.consensusCounter) {
                 consensusID = this.consensusCounter.counter++;
+            }
+
+            synchronized (this.currentConsensus) {
+                while (consensusID > this.currentConsensus.id) {
+                    try {
+                        this.currentConsensus.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
             IstanbulBFT istanbulBFT;
             try {
                 istanbulBFT = new IstanbulBFT(this.processID, clientID, this.leader, this.leaderID, this.apl, this.broadcast,
-                        this.byzantineProcesses, this.blockchain);
+                        this.byzantineProcesses, this.blockchain, this.currentConsensus);
                 synchronized (istanbulBFT) {
                     this.consensusInstances.put(consensusID, istanbulBFT);
                     TimeUnit.SECONDS.sleep(1);

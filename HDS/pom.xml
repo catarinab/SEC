@@ -14,7 +14,6 @@
         <module>Broadcast</module>
         <module>Links</module>
         <module>Blockchain</module>
-        <module>TES</module>
     </modules>
 
     <properties>

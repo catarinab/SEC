@@ -7,7 +7,7 @@ public class Account {
     private final PublicKey publicKey;
     public Account(PublicKey publicKey) {
         this.publicKey = publicKey;
-        this.balance = 10;
+        this.balance = 20;
     }
     public int check_balance(){
         return this.balance;

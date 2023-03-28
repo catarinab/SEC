@@ -14,12 +14,13 @@ public class Blockchain {
         this.maxTransactions = maxTransactions;
     }
 
-    public void addValue(TransactionDTO transaction) {
-        if(!this.currBlock.addTransaction(transaction)) {
+    public void addValue(String transaction) {
+        OperationDTO op = new OperationDTO(transaction);
+        if(!this.currBlock.addTransaction(op)) {
             this.chain.add(this.currBlock);
             String previousHash = this.currBlock.getHash();
             this.currBlock = new Block(previousHash, this.maxTransactions);
-            this.currBlock.addTransaction(transaction);
+            this.currBlock.addTransaction(op);
         }
 
     }
@@ -39,8 +40,8 @@ public class Blockchain {
         int size = this.chain.size();
         System.out.print("Blockchain: ");
         for (Block block: this.chain) {
-            if (i == size - 1) System.out.println(i++ + "- " + block.getData());
-            else System.out.print(i++ + "- " + block.getData() + ", ");
+            if (i == size - 1) System.out.println("Block : " + i++ + "- \n" + block.getData());
+            else System.out.print("Block : " + i++ + "- " + block.getData() + ", ");
         }
     }
     

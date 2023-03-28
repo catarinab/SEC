@@ -26,6 +26,7 @@ public class IstanbulBFT {
     private Broadcast broadcast;
     private int byzantineProcesses;
     private int consensusID;
+    private final Service.CurrentConsensus currentConsensus;
 
     private ConcurrentHashMap<Entry<String,Integer>,String> prepareMessages = new ConcurrentHashMap<>();
     private boolean commitPhase = false;
@@ -40,7 +41,7 @@ public class IstanbulBFT {
     private Blockchain blockchain;
 
     public IstanbulBFT(Entry<String,Integer> processID, Entry<String,Integer> clientID, boolean leader, Entry<String,Integer> leaderID, APL apl, Broadcast broadcast, int byzantineProcesses,
-                       Blockchain blockchain) throws NoSuchAlgorithmException, InvalidKeyException {
+                       Blockchain blockchain, Service.CurrentConsensus currentConsensus) {
         this.processID = processID;
         this.clientID = clientID;
         this.leader = leader;
@@ -49,6 +50,7 @@ public class IstanbulBFT {
         this.broadcast = broadcast;
         this.byzantineProcesses = byzantineProcesses;
         this.blockchain = blockchain;
+        this.currentConsensus = currentConsensus;
     }
 
     public synchronized void algorithm1(int consensusCounter, String message) throws IOException, InterruptedException,
@@ -126,7 +128,12 @@ public class IstanbulBFT {
                     jsonObject.put("command", "decide");
                     jsonObject.put("consensusID", this.consensusID);
                     jsonObject.put("inputValue", inputValue);
-                    this.apl.send(inputValue + "decide", jsonObject.toString(), clientID.getKey(), clientID.getValue());
+                    this.apl.send(inputValue + "decide", jsonObject.toString(), clientID.getKey(),
+                            clientID.getValue());
+                    synchronized (this.currentConsensus) {
+                        this.currentConsensus.id++;
+                        this.currentConsensus.notify();
+                    }
                 }
             }
         }
