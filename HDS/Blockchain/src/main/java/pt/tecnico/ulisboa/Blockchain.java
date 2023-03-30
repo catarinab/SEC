@@ -14,15 +14,18 @@ public class Blockchain {
         this.maxTransactions = maxTransactions;
     }
 
-    public void addValue(String transaction) {
-        OperationDTO op = new OperationDTO(transaction);
+    public void addOperation(OperationDTO op) {
         if(!this.currBlock.addTransaction(op)) {
+            //fazer consenso deste bloco
             this.chain.add(this.currBlock);
             String previousHash = this.currBlock.getHash();
             this.currBlock = new Block(previousHash, this.maxTransactions);
             this.currBlock.addTransaction(op);
         }
+    }
 
+    public void addValue(String transaction) {
+        addOperation(new OperationDTO(transaction, 0, 0, transaction));
     }
 
     public synchronized String getBlockchainIndex(int index) {
@@ -32,6 +35,7 @@ public class Blockchain {
     public synchronized ArrayList<String> getBlockchainData() {
         ArrayList<String> data = new ArrayList<>();
         for (Block block: this.chain) data.add(block.getData());
+        data.add(currBlock.getData());
         return data;
     }
 
@@ -43,6 +47,7 @@ public class Blockchain {
             if (i == size - 1) System.out.println("Block : " + i++ + "- \n" + block.getData());
             else System.out.print("Block : " + i++ + "- " + block.getData() + ", ");
         }
+        System.out.println(this.currBlock.getData());
     }
     
 }

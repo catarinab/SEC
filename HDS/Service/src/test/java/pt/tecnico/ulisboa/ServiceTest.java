@@ -81,7 +81,7 @@ public class ServiceTest {
         Client thread = new Client(clientFourServers);
         thread.start();
         String valueToAppend = "ola!";
-        clientFourServers.send(valueToAppend);
+        clientFourServers.send("append", valueToAppend);
 
         Thread.sleep(10000);
 
@@ -126,7 +126,7 @@ public class ServiceTest {
         Client thread = new Client(clientFourServers);
         thread.start();
         String valueToAppend = "ola!";
-        clientFourServers.send(valueToAppend);
+        clientFourServers.send("append", valueToAppend);
 
         Thread.sleep(10000);
 
@@ -178,7 +178,7 @@ public class ServiceTest {
         Client thread = new Client(clientSevenServers);
         thread.start();
         String valueToAppend = "ola!";
-        clientSevenServers.send(valueToAppend);
+        clientSevenServers.send("append", valueToAppend);
 
         Thread.sleep(17000);
 
@@ -230,8 +230,8 @@ public class ServiceTest {
         thread.start();
         String valueToAppend1 = "ola!";
         String valueToAppend2 = "adeus!";
-        clientFourServers.send(valueToAppend1);
-        clientFourServers.send(valueToAppend2);
+        clientFourServers.send("append", valueToAppend1);
+        clientFourServers.send("append", valueToAppend2);
 
         Thread.sleep(10000);
 
@@ -285,8 +285,8 @@ public class ServiceTest {
         thread.start();
         String valueToAppend1 = "ola!";
         String valueToAppend2 = "adeus!";
-        clientFourServers.send(valueToAppend1);
-        clientFourServers.send(valueToAppend2);
+        clientFourServers.send("append", valueToAppend1);
+        clientFourServers.send("append", valueToAppend2);
 
         Thread.sleep(10000);
 
@@ -340,8 +340,8 @@ public class ServiceTest {
         thread2.start();
         String valueToAppend1 = "ola!";
         String valueToAppend2 = "adeus!";
-        clientFourServers.send(valueToAppend1);
-        secondClientFourServers.send(valueToAppend2);
+        clientFourServers.send("append", valueToAppend1);
+        secondClientFourServers.send("append", valueToAppend2);
 
         Thread.sleep(10000);
 
@@ -390,8 +390,8 @@ public class ServiceTest {
         thread2.start();
         String valueToAppend1 = "ola!";
         String valueToAppend2 = "adeus!";
-        clientFourServers.send(valueToAppend1);
-        secondClientFourServers.send(valueToAppend2);
+        clientFourServers.send("append", valueToAppend1);
+        secondClientFourServers.send("append", valueToAppend2);
 
         Thread.sleep(10000);
 

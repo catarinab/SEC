@@ -65,19 +65,54 @@ public class Client extends Thread{
         // Loop to read messages from the user and send them to the server
         while (true) {
             Scanner input = new Scanner(System.in);
-            System.out.print("Enter a string to append to the blockchain: ");
+            System.out.println("Possible commands: ");
+            System.out.println("create_account (creates an account for this client with its public key)");
+            System.out.println("check_balance (checks the balance of the clients account, if there is one) ");
+            System.out.println("transfer amount DestinationPublicKey (transfers amount to the account with the public Key " +
+                    "DestinationPublicKey)");
+            System.out.print("Insert the command you wish to execute:");
             String message = input.nextLine();
-            client.send(message);
+            String[] splitMessage = message.split(" ");
+            String command = splitMessage[0];
+            String publicKey = Base64.getEncoder().encodeToString(client.apl.getPublicKey().getEncoded());
+            switch (command) {
+                case "create_account":
+                    client.send(command, publicKey);
+                    break;
+                case "transfer":
+                    try {
+                        Integer.parseInt(splitMessage[1]);
+                        if(splitMessage.length != 3) throw new RuntimeException();
+                        client.send(command, splitMessage[1] + ";" + publicKey + ";" + splitMessage[2]);
+                    } catch (Exception e) {
+                        System.out.println("transfer amount DestinationPublicKey (transfers amount to the account with the "
+                                + "public Key DestinationPublicKey)");
+                        System.out.println("amount should be an Integer");
+                    }
+                    break;
+                case "check_balance":
+                    client.send(command, "");
+                    break;
+                default:
+                    System.out.println("Command not permitted.");
+                    break;
+            }
 
         }
     }
 
-    public void send(String message) throws IOException, InterruptedException, NoSuchPaddingException,
+    public void send(String command, String message) throws IOException, InterruptedException, NoSuchPaddingException,
             IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("command", "append");
+        jsonObject.put("command", command);
         jsonObject.put("inputValue", message);
-        this.broadcast.doBroadcast(message + "append", jsonObject.toString());
+        if(command.equals("transfer")) {
+            String[] splitMessage = message.split(" ");
+            jsonObject.put("amount", splitMessage[0]);
+            jsonObject.put("source", splitMessage[1]);
+            jsonObject.put("destination", splitMessage[2]);
+        }
+        this.broadcast.doBroadcast(message + command, jsonObject.toString());
     }
 
     public void receive() throws IOException {

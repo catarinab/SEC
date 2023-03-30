@@ -1,12 +1,10 @@
 package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,10 +25,10 @@ public class Service extends Thread {
     //current state of accounts
     private final ConcurrentHashMap<String, Account> accounts = new ConcurrentHashMap<>();
 
-    class ConsensusCounter {
+    static class ConsensusCounter {
         public volatile int counter = 0;
     }
-    class CurrentConsensus {
+    static class CurrentConsensus {
         public volatile int id = 0;
     }
     private ConsensusCounter consensusCounter = new ConsensusCounter();
@@ -69,8 +67,7 @@ public class Service extends Thread {
     }
 
 
-    public static void main(String[] args) throws IOException, NoSuchAlgorithmException, InvalidKeyException,
-            NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
 
         String behavior = System.getProperty("behaviour");
         String server = System.getProperty("server");
@@ -110,17 +107,25 @@ public class Service extends Thread {
         System.out.println("behavior: C (Correct) or B (Byzantine).");
         System.exit(1);
     }
-    public void create_account(PublicKey publicKey) {
-        this.accounts.put(publicKey.toString(), new Account(publicKey));
+    public boolean create_account(String publicKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        if(this.accounts.containsKey(publicKey)) return false;
+        byte[] decodedKey = Base64.getDecoder().decode(publicKey);
+        PublicKey receivedKey = KeyFactory.getInstance("RSA")
+                .generatePublic(new X509EncodedKeySpec(decodedKey));
+        Account newAcc = new Account(receivedKey);
+        this.accounts.put(publicKey, new Account(receivedKey));
+        OperationDTO op = new OperationDTO(publicKey, newAcc.check_balance(), 0, publicKey);
+        this.blockchain.addOperation(op);
+        return true;
     }
     public int check_balance(PublicKey key) {
         return this.accounts.get(key.toString()).check_balance();
     }
 
     //Como verificar q é mesmo a pessoa -> usar public key da source
-    public boolean transfer(PublicKey source, PublicKey destination, int amount) {
-        Account sourceAcc = this.accounts.get(source.toString());
-        Account destinationAcc = this.accounts.get(destination.toString());
+    public boolean transfer(String source, String destination, int amount) {
+        Account sourceAcc = this.accounts.get(source);
+        Account destinationAcc = this.accounts.get(destination);
         if(amount > 0) {
             if(sourceAcc.check_balance() - amount < 0) return false;
             sourceAcc.removeBalance(amount);
@@ -131,6 +136,8 @@ public class Service extends Thread {
             destinationAcc.removeBalance(amount);
             sourceAcc.addBalance(amount);
         }
+        OperationDTO op = new OperationDTO(source, this.accounts.get(source).check_balance(), 0, source);
+        this.blockchain.addOperation(op);
         return true;
     }
     public boolean isInBlockchain(String data) {
@@ -170,6 +177,9 @@ public class Service extends Thread {
             inputValue = reverse.toString();
         }
         System.out.println("This code is running in a thread with message: " + "(" + command + ") " + inputValue);
+        if(command.equals("create_account")) {
+
+        }
         if (command.equals("append")) {
             Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
             int consensusID;
@@ -189,8 +199,8 @@ public class Service extends Thread {
 
             IstanbulBFT istanbulBFT;
             try {
-                istanbulBFT = new IstanbulBFT(this.processID, clientID, this.leader, this.leaderID, this.apl, this.broadcast,
-                        this.byzantineProcesses, this.blockchain, this.currentConsensus);
+                istanbulBFT = new IstanbulBFT(this.processID, clientID, this.leader, this.leaderID, this.apl,
+                        this.broadcast, this.byzantineProcesses, this.blockchain, this.currentConsensus);
                 synchronized (istanbulBFT) {
                     this.consensusInstances.put(consensusID, istanbulBFT);
                     TimeUnit.SECONDS.sleep(1);

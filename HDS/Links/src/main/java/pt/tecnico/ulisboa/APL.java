@@ -17,7 +17,6 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
-//Por enquanto fica apenas PL.
 public class APL {
     private final StubbornLink stubbornLink;
     private final PublicKey publicKey;
@@ -27,7 +26,6 @@ public class APL {
 
     public APL(String hostname, int port, ConcurrentHashMap<String, JSONObject> acksReceived) throws
             IOException, NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
         this.stubbornLink = new StubbornLink(hostname, port, 10, 1.1, acksReceived);
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
@@ -42,9 +40,14 @@ public class APL {
         this.port = port;
     }
 
+    public PublicKey getPublicKey() {
+        return publicKey;
+    }
+
     public void send(String inputValue, String message, String hostName, int port) throws IOException,
             InterruptedException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
             IllegalBlockSizeException, BadPaddingException {
+
         JSONObject jsonToSend = new JSONObject(message);
         Cipher encryptCipher = Cipher.getInstance("RSA");
         encryptCipher.init(Cipher.ENCRYPT_MODE, this.privateKey);
