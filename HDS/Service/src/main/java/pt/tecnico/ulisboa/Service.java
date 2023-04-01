@@ -21,9 +21,9 @@ public class Service extends Thread {
     private final Broadcast broadcast;
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
-    private Blockchain blockchain = new Blockchain(10);
+    private Blockchain blockchain = new Blockchain(3);
     //current state of accounts
-    private final ConcurrentHashMap<String, Account> accounts = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Account> accounts = new ConcurrentHashMap<>();
 
     static class ConsensusCounter {
         public volatile int counter = 0;
@@ -34,6 +34,7 @@ public class Service extends Thread {
     private ConsensusCounter consensusCounter = new ConsensusCounter();
     private CurrentConsensus currentConsensus = new CurrentConsensus();
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
+    private Block currBlock = new Block("", this.blockchain.getMaxTransactions());
     private JSONObject message = null;
 
     public Service(String hostname, int port, boolean byzantine, int byzantineProcesses, List<Entry<String,Integer>> processes,
@@ -60,15 +61,16 @@ public class Service extends Thread {
         this.delivered = father.delivered;
         this.acksReceived = father.acksReceived;
         this.blockchain = father.blockchain;
+        this.accounts = father.accounts;
         this.consensusInstances = father.consensusInstances;
         this.consensusCounter = father.consensusCounter;
         this.currentConsensus = father.currentConsensus;
+        this.currBlock = father.currBlock;
         this.message = message;
     }
 
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
-
         String behavior = System.getProperty("behaviour");
         String server = System.getProperty("server");
         String path = System.getProperty("path");
@@ -107,19 +109,44 @@ public class Service extends Thread {
         System.out.println("behavior: C (Correct) or B (Byzantine).");
         System.exit(1);
     }
+
+    public void addCurrBlock(OperationDTO op) {
+        try{
+            if (!this.currBlock.addTransaction(op)) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("command", "append");
+                jsonObject.put("inputValue", this.currBlock);
+                this.broadcast.doBroadcast(this.currBlock.getData() + "append", jsonObject.toString());
+
+                String previousHash = this.currBlock.getHash();
+                this.currBlock = new Block(previousHash, this.blockchain.getMaxTransactions());
+                this.currBlock.addTransaction(op);
+            }
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
     public boolean create_account(String publicKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
         if(this.accounts.containsKey(publicKey)) return false;
         byte[] decodedKey = Base64.getDecoder().decode(publicKey);
         PublicKey receivedKey = KeyFactory.getInstance("RSA")
                 .generatePublic(new X509EncodedKeySpec(decodedKey));
         Account newAcc = new Account(receivedKey);
-        this.accounts.put(publicKey, new Account(receivedKey));
+        this.accounts.put(publicKey, newAcc);
         OperationDTO op = new OperationDTO(publicKey, newAcc.check_balance(), 0, publicKey);
-        this.blockchain.addOperation(op);
+        this.addCurrBlock(op);
         return true;
     }
-    public int check_balance(PublicKey key) {
-        return this.accounts.get(key.toString()).check_balance();
+
+    public int check_balance(String publicKey) {
+        if(this.accounts.containsKey(publicKey)){
+            return this.accounts.get(publicKey).check_balance();
+        }
+        else{
+            return -1;
+        }
     }
 
     //Como verificar q é mesmo a pessoa -> usar public key da source
@@ -137,9 +164,10 @@ public class Service extends Thread {
             sourceAcc.addBalance(amount);
         }
         OperationDTO op = new OperationDTO(source, this.accounts.get(source).check_balance(), 0, source);
-        this.blockchain.addOperation(op);
+        this.addCurrBlock(op);
         return true;
     }
+
     public boolean isInBlockchain(String data) {
         return this.blockchain.getBlockchainData().contains(data);
     }
@@ -168,65 +196,81 @@ public class Service extends Thread {
 
     public void run() {
         String command = this.message.getString("command");
-        String inputValue = this.message.getString("inputValue");
         String receivedHostname = this.message.getString("hostname");
         int receivedPort = this.message.getInt("port");
-        if (byzantine) {
-            StringBuilder reverse = new StringBuilder();
-            for (int i = 0; i < inputValue.length(); i++) reverse.insert(0, inputValue.charAt(i));
-            inputValue = reverse.toString();
-        }
-        System.out.println("This code is running in a thread with message: " + "(" + command + ") " + inputValue);
+        System.out.println("This code is running in a thread with message: " + this.message);
         if(command.equals("create_account")) {
-
-        }
-        if (command.equals("append")) {
             Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
-            int consensusID;
-            synchronized (this.consensusCounter) {
-                consensusID = this.consensusCounter.counter++;
+            String keyClient = this.message.getString("key");
+            try{
+                if (!this.create_account(keyClient)) return;
             }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        else if(command.equals("transfer")) {
+            Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
+            String amount = this.message.getString("amount");
+            String source = this.message.getString("key");
+            String destination = this.message.getString("destination");
+            if (!this.transfer(source, destination, Integer.parseInt(amount))) return;
+        }
+        else if(command.equals("check_balance")) {
+            Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
+            String keyClient = this.message.getString("key");
+            if (this.check_balance(keyClient) == -1) return;
+        }
+        //Consensus
+        else {
+            Block inputValue = (Block) this.message.get("inputValue");
+            if (byzantine) inputValue.byzantine();
 
-            synchronized (this.currentConsensus) {
-                while (consensusID > this.currentConsensus.id) {
-                    try {
-                        this.currentConsensus.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+            if (command.equals("append")) {
+                int consensusID;
+                synchronized (this.consensusCounter) {
+                    consensusID = this.consensusCounter.counter++;
+                }
+
+                synchronized (this.currentConsensus) {
+                    while (consensusID > this.currentConsensus.id) {
+                        try {
+                            this.currentConsensus.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-            }
 
-            IstanbulBFT istanbulBFT;
-            try {
-                istanbulBFT = new IstanbulBFT(this.processID, clientID, this.leader, this.leaderID, this.apl,
-                        this.broadcast, this.byzantineProcesses, this.blockchain, this.currentConsensus);
-                synchronized (istanbulBFT) {
-                    this.consensusInstances.put(consensusID, istanbulBFT);
-                    TimeUnit.SECONDS.sleep(1);
-                    istanbulBFT.algorithm1(consensusID, inputValue);
+                IstanbulBFT istanbulBFT;
+                try {
+                    istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.leaderID, this.apl,
+                            this.broadcast, this.byzantineProcesses, this.blockchain, this.currentConsensus);
+                    synchronized (istanbulBFT) {
+                        this.consensusInstances.put(consensusID, istanbulBFT);
+                        TimeUnit.SECONDS.sleep(1);
+                        istanbulBFT.algorithm1(consensusID, inputValue);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
-            Entry<String,Integer> receivedProcess = null;
-            for (Entry<String,Integer> process: this.processes) {
-                if (process.getKey().equals(receivedHostname) && process.getValue() == receivedPort) {
-                    receivedProcess = process;
-                    break;
+            else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
+                Entry<String, Integer> receivedProcess = null;
+                for (Entry<String, Integer> process : this.processes) {
+                    if (process.getKey().equals(receivedHostname) && process.getValue() == receivedPort) {
+                        receivedProcess = process;
+                        break;
+                    }
                 }
-            }
-            IstanbulBFT istanbulBFT;
-            try {
-                synchronized (istanbulBFT = this.consensusInstances.get(this.message.getInt("consensusID"))) {
-                    istanbulBFT.algorithm2(command, inputValue, receivedProcess);
+                IstanbulBFT istanbulBFT;
+                try {
+                    synchronized (istanbulBFT = this.consensusInstances.get(this.message.getInt("consensusID"))) {
+                        istanbulBFT.algorithm2(command, inputValue, receivedProcess);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            }
-            catch (Exception e) {
-                e.printStackTrace();
             }
         }
     }

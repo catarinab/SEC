@@ -12,7 +12,7 @@ public class Block {
     //hash from previous block, to make sure the blockchain is not tampered with
     private final String previousHash;
     private final OperationDTO[] transactionGroup;
-    private int currTransactionNum = 0;
+    private int transactions = 0;
     private final int maxTransactions;
 
     public Block(String previousHash, int maxTransactions) {
@@ -21,11 +21,21 @@ public class Block {
         this.maxTransactions = maxTransactions;
     }
 
+    public void byzantine(){
+        for(int i = 0; i < this.transactions; i++){
+            this.transactionGroup[i].multiplyCurrBalance();
+        }
+    }
+
     public synchronized boolean addTransaction(OperationDTO transaction) {
-        if(this.currTransactionNum >= this.maxTransactions) return false;
-        else transactionGroup[currTransactionNum++] = transaction;
-        System.out.println("adicionou no bloco no indice" + (currTransactionNum-1));
+        if (this.transactions >= this.maxTransactions) return false;
+        else transactionGroup[this.transactions++] = transaction;
+        System.out.println("adicionou no bloco no indice" + (this.transactions - 1));
         return true;
+    }
+
+    public OperationDTO[] getTransactionGroup() {
+        return transactionGroup;
     }
 
     public void calculateHash() {
@@ -46,12 +56,26 @@ public class Block {
 
     public String getData(){
         StringBuilder retVal = new StringBuilder();
-        for(int i = 0; i < this.currTransactionNum; i++) {
-            retVal.append(i).append(" -> source: ").append(this.transactionGroup[i].account).append(", previous balance: ")
-                    .append(this.transactionGroup[i].previousBalance).append(", new balance: ")
+        for(int i = 0; i < this.transactions; i++) {
+            retVal.append(i).append(" -> source: ").append(this.transactionGroup[i].publicKey).append(", previous balance: ")
+                    .append(this.transactionGroup[i].prevBalance).append(", new balance: ")
                     .append(this.transactionGroup[i].currBalance).append("\n");
         }
         return retVal.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+
+        final Block block = (Block) obj;
+        if(this.transactions != block.transactions) return false;
+        OperationDTO[] blockOps = block.getTransactionGroup();
+        for(int i = 0; i < this.transactions; i++){
+            if(!this.transactionGroup[i].equals(blockOps[i])) return false;
+        }
+
+        return true;
     }
     
 }

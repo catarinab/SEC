@@ -18,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class IstanbulBFT {
     private final Entry<String,Integer> processID;
-    private final Entry<String,Integer> clientID;
     private boolean leader;
     private final Entry<String,Integer> leaderID;
 
@@ -28,22 +27,23 @@ public class IstanbulBFT {
     private int consensusID;
     private final Service.CurrentConsensus currentConsensus;
 
-    private ConcurrentHashMap<Entry<String,Integer>,String> prepareMessages = new ConcurrentHashMap<>();
+    private boolean preparePhase = false;
+    private ConcurrentHashMap<Entry<String,Integer>,Block> prepareMessages = new ConcurrentHashMap<>();
     private boolean commitPhase = false;
-    private ConcurrentHashMap<Entry<String,Integer>,String> commitMessages = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<Entry<String,Integer>,Block> commitMessages = new ConcurrentHashMap<>();
     private boolean decisionPhase = false;
 
     //currentRound
     //processRound
-    private String processValue;
+    private Block inputValue;
+    private Block processValue;
     //private Timer timer = null;
 
     private Blockchain blockchain;
 
-    public IstanbulBFT(Entry<String,Integer> processID, Entry<String,Integer> clientID, boolean leader, Entry<String,Integer> leaderID, APL apl, Broadcast broadcast, int byzantineProcesses,
+    public IstanbulBFT(Entry<String,Integer> processID, boolean leader, Entry<String,Integer> leaderID, APL apl, Broadcast broadcast, int byzantineProcesses,
                        Blockchain blockchain, Service.CurrentConsensus currentConsensus) {
         this.processID = processID;
-        this.clientID = clientID;
         this.leader = leader;
         this.leaderID = leaderID;
         this.apl = apl;
@@ -53,9 +53,10 @@ public class IstanbulBFT {
         this.currentConsensus = currentConsensus;
     }
 
-    public synchronized void algorithm1(int consensusCounter, String message) throws IOException, InterruptedException,
+    public synchronized void algorithm1(int consensusCounter, Block block) throws IOException, InterruptedException,
             NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException,
             InvalidKeyException {
+        this.inputValue = block;
         this.consensusID = consensusCounter;
         //currentRound
 
@@ -64,23 +65,24 @@ public class IstanbulBFT {
             jsonObject.put("command", "pre-prepare");
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
-            jsonObject.put("inputValue", message);
-            this.broadcast.doBroadcast(message + "pre-prepare", jsonObject.toString());
+            jsonObject.put("inputValue", this.inputValue);
+            this.broadcast.doBroadcast(this.inputValue.getData() + "pre-prepare", jsonObject.toString());
         }
         //timerRound
     }
 
-    public synchronized void algorithm2(String command, String inputValue, Entry<String,Integer> receivedProcess) throws IOException, InterruptedException,
+    public synchronized void algorithm2(String command, Block inputValue, Entry<String,Integer> receivedProcess) throws IOException, InterruptedException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeyException {
-        if (command.equals("pre-prepare") && this.leaderID.equals(receivedProcess)) {
+        if (command.equals("pre-prepare") && this.leaderID.equals(receivedProcess) && !this.preparePhase && !this.commitPhase && !this.decisionPhase) {
+            this.preparePhase = true;
             //timerRound
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("command", "prepare");
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
             jsonObject.put("inputValue", inputValue);
-            this.broadcast.doBroadcast(inputValue + "prepare", jsonObject.toString());
+            this.broadcast.doBroadcast(inputValue.getData() + "prepare", jsonObject.toString());
         }
         else if (command.equals("prepare") && !this.prepareMessages.containsKey(receivedProcess) && !this.commitPhase && !this.decisionPhase) {
             this.prepareMessages.put(receivedProcess, inputValue);
@@ -101,11 +103,11 @@ public class IstanbulBFT {
                     jsonObject.put("consensusID", this.consensusID);
                     //currentRound
                     jsonObject.put("inputValue", inputValue);
-                    this.broadcast.doBroadcast(inputValue + "commit", jsonObject.toString());
+                    this.broadcast.doBroadcast(inputValue.getData() + "commit", jsonObject.toString());
                 }
             }
         }
-        else if (command.equals("commit") && !this.commitMessages.containsKey(receivedProcess) && !decisionPhase) {
+        else if (command.equals("commit") && !this.commitMessages.containsKey(receivedProcess) && !this.decisionPhase) {
             //timerRound
             this.commitMessages.put(receivedProcess, inputValue);
 
@@ -118,18 +120,12 @@ public class IstanbulBFT {
                 }
                 if (validCounter >= quorumSize) {
                     this.decisionPhase = true;
-                    System.out.println("Istanbul BFT decided: " + inputValue);
+                    System.out.println("Istanbul BFT decided: " + inputValue.getData());
 
                     //timerRound
                     this.blockchain.addValue(inputValue);
                     this.blockchain.printBlockchain();
 
-                    JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("command", "decide");
-                    jsonObject.put("consensusID", this.consensusID);
-                    jsonObject.put("inputValue", inputValue);
-                    this.apl.send(inputValue + "decide", jsonObject.toString(), clientID.getKey(),
-                            clientID.getValue());
                     synchronized (this.currentConsensus) {
                         this.currentConsensus.id++;
                         this.currentConsensus.notify();

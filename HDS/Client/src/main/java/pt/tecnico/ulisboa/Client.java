@@ -77,13 +77,13 @@ public class Client extends Thread{
             String publicKey = Base64.getEncoder().encodeToString(client.apl.getPublicKey().getEncoded());
             switch (command) {
                 case "create_account":
-                    client.send(command, publicKey);
+                    client.send(command, "");
                     break;
                 case "transfer":
                     try {
                         Integer.parseInt(splitMessage[1]);
                         if(splitMessage.length != 3) throw new RuntimeException();
-                        client.send(command, splitMessage[1] + ";" + publicKey + ";" + splitMessage[2]);
+                        client.send(command, splitMessage[1] + ";" + splitMessage[2]);
                     } catch (Exception e) {
                         System.out.println("transfer amount DestinationPublicKey (transfers amount to the account with the "
                                 + "public Key DestinationPublicKey)");
@@ -107,10 +107,9 @@ public class Client extends Thread{
         jsonObject.put("command", command);
         jsonObject.put("inputValue", message);
         if(command.equals("transfer")) {
-            String[] splitMessage = message.split(" ");
+            String[] splitMessage = message.split(";");
             jsonObject.put("amount", splitMessage[0]);
-            jsonObject.put("source", splitMessage[1]);
-            jsonObject.put("destination", splitMessage[2]);
+            jsonObject.put("destination", splitMessage[1]);
         }
         this.broadcast.doBroadcast(message + command, jsonObject.toString());
     }

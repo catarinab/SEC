@@ -79,3 +79,5 @@ done < "$System"
 
 # Create new terminal and run client program
 gnome-terminal --tab --title="Client" -- /bin/bash -c "cd Client/ && mvn exec:java -Dhostname=\"$HostnameClient\" -Dport=\"$PortClient\" -Dpath=\"$System\"; exec /bin/bash"
+
+gnome-terminal --tab --title="Client" -- /bin/bash -c "cd Client/ && mvn exec:java -Dhostname=\"localhost\" -Dport=\"4322\" -Dpath=\"$System\"; exec /bin/bash"
