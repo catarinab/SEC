@@ -113,10 +113,35 @@ public class Service extends Thread {
     public void addCurrBlock(OperationDTO op) {
         try{
             if (!this.currBlock.addTransaction(op)) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("command", "append");
-                jsonObject.put("inputValue", this.currBlock);
-                this.broadcast.doBroadcast(this.currBlock.getData() + "append", jsonObject.toString());
+                int consensusID;
+                synchronized (this.consensusCounter) {
+                    consensusID = this.consensusCounter.counter++;
+                }
+
+                synchronized (this.currentConsensus) {
+                    while (consensusID > this.currentConsensus.id) {
+                        try {
+                            this.currentConsensus.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                IstanbulBFT istanbulBFT;
+                if (byzantine) this.currBlock.byzantine();
+                try {
+                    istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.leaderID, this.apl,
+                            this.broadcast, this.byzantineProcesses, this.blockchain, this.currentConsensus);
+                    synchronized (istanbulBFT) {
+                        this.consensusInstances.put(consensusID, istanbulBFT);
+                        TimeUnit.SECONDS.sleep(1);
+                        istanbulBFT.algorithm1(consensusID, this.currBlock);
+                    }
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 String previousHash = this.currBlock.getHash();
                 this.currBlock = new Block(previousHash, this.blockchain.getMaxTransactions());
@@ -135,7 +160,7 @@ public class Service extends Thread {
                 .generatePublic(new X509EncodedKeySpec(decodedKey));
         Account newAcc = new Account(receivedKey);
         this.accounts.put(publicKey, newAcc);
-        OperationDTO op = new OperationDTO(publicKey, newAcc.check_balance(), 0, publicKey);
+        OperationDTO op = new CreateAccDTO(publicKey, digSignature, newAcc.check_balance());
         this.addCurrBlock(op);
         return true;
     }
@@ -150,9 +175,10 @@ public class Service extends Thread {
     }
 
     //Como verificar q é mesmo a pessoa -> usar public key da source
-    public boolean transfer(String source, String destination, int amount) {
+    public boolean transfer(String source, String destination, int amount, String digSignature) {
         Account sourceAcc = this.accounts.get(source);
         Account destinationAcc = this.accounts.get(destination);
+        int prevBalanceSource = sourceAcc.check_balance();
         if(amount > 0) {
             if(sourceAcc.check_balance() - amount < 0) return false;
             sourceAcc.removeBalance(amount);
@@ -163,7 +189,8 @@ public class Service extends Thread {
             destinationAcc.removeBalance(amount);
             sourceAcc.addBalance(amount);
         }
-        OperationDTO op = new OperationDTO(source, this.accounts.get(source).check_balance(), 0, source);
+        OperationDTO op = new TransferDTO(source, digSignature, this.accounts.get(source).check_balance(), prevBalanceSource,
+                destination, amount);
         this.addCurrBlock(op);
         return true;
     }
@@ -198,64 +225,40 @@ public class Service extends Thread {
         String command = this.message.getString("command");
         String receivedHostname = this.message.getString("hostname");
         int receivedPort = this.message.getInt("port");
-        System.out.println("This code is running in a thread with message: " + this.message);
-        if(command.equals("create_account")) {
-            Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
-            String keyClient = this.message.getString("key");
-            try{
-                if (!this.create_account(keyClient)) return;
-            }
-            catch(Exception e){
-                e.printStackTrace();
-            }
-        }
-        else if(command.equals("transfer")) {
-            Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
-            String amount = this.message.getString("amount");
-            String source = this.message.getString("key");
-            String destination = this.message.getString("destination");
-            if (!this.transfer(source, destination, Integer.parseInt(amount))) return;
-        }
-        else if(command.equals("check_balance")) {
-            Entry<String,Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
-            String keyClient = this.message.getString("key");
-            if (this.check_balance(keyClient) == -1) return;
-        }
-        //Consensus
-        else {
-            Block inputValue = (Block) this.message.get("inputValue");
-            if (byzantine) inputValue.byzantine();
-
-            if (command.equals("append")) {
-                int consensusID;
-                synchronized (this.consensusCounter) {
-                    consensusID = this.consensusCounter.counter++;
-                }
-
-                synchronized (this.currentConsensus) {
-                    while (consensusID > this.currentConsensus.id) {
-                        try {
-                            this.currentConsensus.wait();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-                IstanbulBFT istanbulBFT;
+        String digSignature = this.message.getString("mac");
+        System.out.println("This code is running in a thread with command: " + command);
+        switch (command) {
+            case "create_account": {
+                Entry<String, Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
+                String keyClient = this.message.getString("key");
                 try {
-                    istanbulBFT = new IstanbulBFT(this.processID, this.leader, this.leaderID, this.apl,
-                            this.broadcast, this.byzantineProcesses, this.blockchain, this.currentConsensus);
-                    synchronized (istanbulBFT) {
-                        this.consensusInstances.put(consensusID, istanbulBFT);
-                        TimeUnit.SECONDS.sleep(1);
-                        istanbulBFT.algorithm1(consensusID, inputValue);
-                    }
+                    if (!this.create_account(keyClient, digSignature)) return;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                break;
             }
-            else if (command.equals("pre-prepare") || command.equals("prepare") || command.equals("commit")) {
+            case "transfer": {
+                Entry<String, Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
+                String amount = this.message.getString("amount");
+                String source = this.message.getString("key");
+                String destination = this.message.getString("destination");
+                if (!this.transfer(source, destination, Integer.parseInt(amount), digSignature)) return;
+                break;
+            }
+            case "check_balance": {
+                Entry<String, Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
+                String keyClient = this.message.getString("key");
+                if (this.check_balance(keyClient) == -1) return;
+                break;
+            }
+            //Consensus
+            default:
+                System.out.println("ConsensusID: " + this.message.getInt("consensusID"));
+                String block = this.message.getString("inputValue");
+                Block inputValue = new Block(new JSONObject(block));
+                if (byzantine) inputValue.byzantine();
+
                 Entry<String, Integer> receivedProcess = null;
                 for (Entry<String, Integer> process : this.processes) {
                     if (process.getKey().equals(receivedHostname) && process.getValue() == receivedPort) {
@@ -271,7 +274,7 @@ public class Service extends Thread {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            }
+                break;
         }
     }
 

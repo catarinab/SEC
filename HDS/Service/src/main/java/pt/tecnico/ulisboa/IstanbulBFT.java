@@ -65,8 +65,8 @@ public class IstanbulBFT {
             jsonObject.put("command", "pre-prepare");
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
-            jsonObject.put("inputValue", this.inputValue);
-            this.broadcast.doBroadcast(this.inputValue.getData() + "pre-prepare", jsonObject.toString());
+            jsonObject.put("inputValue", this.inputValue.toJsonObj().toString());
+            this.broadcast.doBroadcast(this.inputValue.toJsonObj().toString() + "pre-prepare", jsonObject.toString());
         }
         //timerRound
     }
@@ -81,8 +81,8 @@ public class IstanbulBFT {
             jsonObject.put("command", "prepare");
             jsonObject.put("consensusID", this.consensusID);
             //currentRound
-            jsonObject.put("inputValue", inputValue);
-            this.broadcast.doBroadcast(inputValue.getData() + "prepare", jsonObject.toString());
+            jsonObject.put("inputValue", inputValue.toJsonObj().toString());
+            this.broadcast.doBroadcast(inputValue.toJsonObj().toString() + "prepare", jsonObject.toString());
         }
         else if (command.equals("prepare") && !this.prepareMessages.containsKey(receivedProcess) && !this.commitPhase && !this.decisionPhase) {
             this.prepareMessages.put(receivedProcess, inputValue);
@@ -102,8 +102,8 @@ public class IstanbulBFT {
                     jsonObject.put("command", "commit");
                     jsonObject.put("consensusID", this.consensusID);
                     //currentRound
-                    jsonObject.put("inputValue", inputValue);
-                    this.broadcast.doBroadcast(inputValue.getData() + "commit", jsonObject.toString());
+                    jsonObject.put("inputValue", inputValue.toJsonObj().toString());
+                    this.broadcast.doBroadcast(inputValue.toJsonObj().toString() + "commit", jsonObject.toString());
                 }
             }
         }
@@ -120,10 +120,11 @@ public class IstanbulBFT {
                 }
                 if (validCounter >= quorumSize) {
                     this.decisionPhase = true;
-                    System.out.println("Istanbul BFT decided: " + inputValue.getData());
+                    System.out.println("Istanbul BFT decided: " + inputValue.toJsonObj());
 
                     //timerRound
                     this.blockchain.addValue(inputValue);
+                    System.out.println("============BLOCKCHAIN============");
                     this.blockchain.printBlockchain();
 
                     synchronized (this.currentConsensus) {

@@ -28,6 +28,7 @@ public class Block {
     }
 
     public synchronized boolean addTransaction(OperationDTO transaction) {
+        System.out.println(this.maxTransactions);
         if (this.transactions >= this.maxTransactions) return false;
         else transactionGroup[this.transactions++] = transaction;
         System.out.println("adicionou no bloco no indice" + (this.transactions - 1));
@@ -57,9 +58,7 @@ public class Block {
     public String getData(){
         StringBuilder retVal = new StringBuilder();
         for(int i = 0; i < this.transactions; i++) {
-            retVal.append(i).append(" -> source: ").append(this.transactionGroup[i].publicKey).append(", previous balance: ")
-                    .append(this.transactionGroup[i].prevBalance).append(", new balance: ")
-                    .append(this.transactionGroup[i].currBalance).append("\n");
+            retVal.append(i).append(" -> source: ").append(this.transactionGroup[i]);
         }
         return retVal.toString();
     }
