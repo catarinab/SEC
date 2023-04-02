@@ -28,7 +28,7 @@ public class Block {
         this.transactionGroup = new OperationDTO[maxTransactions];
         for (int i = 0; i < this.maxTransactions; i++) {
             JSONObject transaction = jsonObject.getJSONObject(Integer.toString(i));
-            String type = jsonObject.getString("transaction");
+            String type = transaction.getString("transaction");
             if(type.equals("createAcc")) this.transactionGroup[i] = new CreateAccDTO(transaction);
             else if(type.equals("transfer")) this.transactionGroup[i] = new TransferDTO(transaction);
             else throw new RuntimeException();
