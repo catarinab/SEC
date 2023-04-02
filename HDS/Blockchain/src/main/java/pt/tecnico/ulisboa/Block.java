@@ -1,6 +1,6 @@
 package pt.tecnico.ulisboa;
 
-
+import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,6 +19,31 @@ public class Block {
         this.previousHash = previousHash;
         this.transactionGroup = new OperationDTO[maxTransactions];
         this.maxTransactions = maxTransactions;
+    }
+
+    public Block(JSONObject jsonObject) {
+        this.previousHash = jsonObject.getString("previousHash");
+        this.transactions = jsonObject.getInt("transactions");
+        this.maxTransactions = jsonObject.getInt("maxTransactions");
+        this.transactionGroup = new OperationDTO[maxTransactions];
+        for (int i = 0; i < this.maxTransactions; i++) {
+            JSONObject transaction = jsonObject.getJSONObject(Integer.toString(i));
+            String type = jsonObject.getString("transaction");
+            if(type.equals("createAcc")) this.transactionGroup[i] = new CreateAccDTO(transaction);
+            else if(type.equals("transfer")) this.transactionGroup[i] = new TransferDTO(transaction);
+            else throw new RuntimeException();
+        }
+    }
+
+    public JSONObject toJsonObj() {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("previousHash", this.previousHash);
+        jsonObject.put("transactions", this.transactions);
+        jsonObject.put("maxTransactions", this.maxTransactions);
+        for (int i = 0; i < this.maxTransactions; i++) {
+            jsonObject.put(Integer.toString(i), this.transactionGroup[i].toJsonObj());
+        }
+        return jsonObject;
     }
 
     public void byzantine(){
