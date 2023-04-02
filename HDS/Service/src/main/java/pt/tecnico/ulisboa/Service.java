@@ -111,7 +111,7 @@ public class Service extends Thread {
     }
 
     public void addCurrBlock(OperationDTO op) {
-        try{
+        try {
             if (!this.currBlock.addTransaction(op)) {
                 int consensusID;
                 synchronized (this.consensusCounter) {
@@ -153,7 +153,8 @@ public class Service extends Thread {
         }
     }
 
-    public boolean create_account(String publicKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public boolean create_account(String publicKey, String digSignature) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        System.out.println("Public Key: " + publicKey);
         if(this.accounts.containsKey(publicKey)) return false;
         byte[] decodedKey = Base64.getDecoder().decode(publicKey);
         PublicKey receivedKey = KeyFactory.getInstance("RSA")
