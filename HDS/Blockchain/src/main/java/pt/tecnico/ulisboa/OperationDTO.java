@@ -5,8 +5,8 @@ import java.util.Random;
 
 //Data Transfer Object for Operations (transfers and create account)
 public abstract class OperationDTO {
-    public String publicKey;
     public String digSignature;
+    public String publicKey;
     public int currBalance;
 
     public OperationDTO(String publicKey, String digSignature, int currBalance) {

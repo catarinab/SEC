@@ -10,8 +10,8 @@ public class Block {
     //hash of the data
     private String hash;
     //hash from previous block, to make sure the blockchain is not tampered with
-    private final String previousHash;
-    private final OperationDTO[] transactionGroup;
+    private String previousHash;
+    private OperationDTO[] transactionGroup;
     private int transactions = 0;
     private final int maxTransactions;
 
@@ -53,11 +53,9 @@ public class Block {
     }
 
     public synchronized boolean addTransaction(OperationDTO transaction) {
-        System.out.println(this.maxTransactions);
-        if (this.transactions >= this.maxTransactions) return false;
-        else transactionGroup[this.transactions++] = transaction;
-        System.out.println("adicionou no bloco no indice" + (this.transactions - 1));
-        return true;
+        transactionGroup[this.transactions++] = transaction;
+        System.out.println("Appended to block in index: " + (this.transactions - 1));
+        return (this.transactions < this.maxTransactions);
     }
 
     public OperationDTO[] getTransactionGroup() {
@@ -75,17 +73,20 @@ public class Block {
         }
     }
 
-    public String getHash(){
-        calculateHash();
-        return this.hash;
-    }
-
     public String getData(){
         StringBuilder retVal = new StringBuilder();
         for(int i = 0; i < this.transactions; i++) {
             retVal.append(i).append(" -> source: ").append(this.transactionGroup[i]);
         }
         return retVal.toString();
+    }
+
+    public void reset() {
+        calculateHash();
+        this.previousHash = this.hash;
+        this.hash = "";
+        this.transactionGroup = new OperationDTO[maxTransactions];
+        this.transactions = 0;
     }
 
     @Override

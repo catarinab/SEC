@@ -3,8 +3,8 @@ package pt.tecnico.ulisboa;
 import org.json.JSONObject;
 
 public class TransferDTO extends OperationDTO{
-    public int prevBalance;
     public String destination;
+    public int prevBalance;
     public int amount;
 
     public TransferDTO(String publicKey, String digSignature, int currBalance, int prevBalance, String destination,

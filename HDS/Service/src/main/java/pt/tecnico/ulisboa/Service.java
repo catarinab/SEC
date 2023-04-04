@@ -26,7 +26,7 @@ public class Service extends Thread {
     private ConcurrentHashMap<String, Account> accounts = new ConcurrentHashMap<>();
 
     static class ConsensusCounter {
-        public volatile int counter = 0;
+        public volatile  int counter = 0;
     }
     static class CurrentConsensus {
         public volatile int id = 0;
@@ -143,9 +143,7 @@ public class Service extends Thread {
                     e.printStackTrace();
                 }
 
-                String previousHash = this.currBlock.getHash();
-                this.currBlock = new Block(previousHash, this.blockchain.getMaxTransactions());
-                this.currBlock.addTransaction(op);
+                this.currBlock.reset();
             }
         }
         catch(Exception e){
@@ -167,7 +165,7 @@ public class Service extends Thread {
     }
 
     public int check_balance(String publicKey) {
-        if(this.accounts.containsKey(publicKey)){
+        if (this.accounts.containsKey(publicKey)){
             return this.accounts.get(publicKey).check_balance();
         }
         else{

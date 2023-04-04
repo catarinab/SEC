@@ -120,7 +120,7 @@ public class IstanbulBFT {
                 }
                 if (validCounter >= quorumSize) {
                     this.decisionPhase = true;
-                    System.out.println("Istanbul BFT decided: " + inputValue.toJsonObj());
+                    System.out.println("Istanbul BFT decided");
 
                     //timerRound
                     this.blockchain.addValue(inputValue);
