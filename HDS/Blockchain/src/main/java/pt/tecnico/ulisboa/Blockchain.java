@@ -32,10 +32,10 @@ public class Blockchain {
     public synchronized void printBlockchain() {
         int i = 0;
         int size = this.chain.size();
-        System.out.print("Blockchain: ");
+        System.out.println("Blockchain: ");
         for (Block block: this.chain) {
             if (i == size - 1) System.out.println("Block : " + i++ + "- \n" + block.getData());
-            else System.out.print("Block : " + i++ + "- " + block.getData() + ", ");
+            else System.out.println("Block : " + i++ + "- " + block.getData() + ", ");
         }
     }
 }

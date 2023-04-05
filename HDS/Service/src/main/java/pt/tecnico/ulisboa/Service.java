@@ -151,7 +151,8 @@ public class Service extends Thread {
         }
     }
 
-    public boolean create_account(String publicKey, String digSignature) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public boolean create_account(String publicKey, String digSignature, String hostname, int port)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
         System.out.println("Public Key: " + publicKey);
         if(this.accounts.containsKey(publicKey)) return false;
         byte[] decodedKey = Base64.getDecoder().decode(publicKey);
@@ -159,7 +160,7 @@ public class Service extends Thread {
                 .generatePublic(new X509EncodedKeySpec(decodedKey));
         Account newAcc = new Account(receivedKey);
         this.accounts.put(publicKey, newAcc);
-        OperationDTO op = new CreateAccDTO(publicKey, digSignature, newAcc.check_balance());
+        OperationDTO op = new CreateAccDTO(publicKey, digSignature, newAcc.check_balance(), hostname, port);
         this.addCurrBlock(op);
         return true;
     }
@@ -174,10 +175,11 @@ public class Service extends Thread {
     }
 
     //Como verificar q é mesmo a pessoa -> usar public key da source
-    public boolean transfer(String source, String destination, int amount, String digSignature) {
+    public boolean transfer(String source, String destination, int amount, String digSignature, String hostname, int port) {
         Account sourceAcc = this.accounts.get(source);
         Account destinationAcc = this.accounts.get(destination);
         int prevBalanceSource = sourceAcc.check_balance();
+        int prevBalanceDest = destinationAcc.check_balance();
         if(amount > 0) {
             if(sourceAcc.check_balance() - amount < 0) return false;
             sourceAcc.removeBalance(amount);
@@ -188,8 +190,8 @@ public class Service extends Thread {
             destinationAcc.removeBalance(amount);
             sourceAcc.addBalance(amount);
         }
-        OperationDTO op = new TransferDTO(source, digSignature, this.accounts.get(source).check_balance(), prevBalanceSource,
-                destination, amount);
+        OperationDTO op = new TransferDTO(source, digSignature, prevBalanceSource, sourceAcc.check_balance(),
+                prevBalanceDest, destinationAcc.check_balance(), destination, amount, hostname, port);
         this.addCurrBlock(op);
         return true;
     }
@@ -231,7 +233,7 @@ public class Service extends Thread {
                 Entry<String, Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
                 String keyClient = this.message.getString("key");
                 try {
-                    if (!this.create_account(keyClient, digSignature)) return;
+                    if (!this.create_account(keyClient, digSignature, receivedHostname, receivedPort)) return;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -242,7 +244,8 @@ public class Service extends Thread {
                 String amount = this.message.getString("amount");
                 String source = this.message.getString("key");
                 String destination = this.message.getString("destination");
-                if (!this.transfer(source, destination, Integer.parseInt(amount), digSignature)) return;
+                if (!this.transfer(source, destination, Integer.parseInt(amount), digSignature, receivedHostname,
+                        receivedPort)) return;
                 break;
             }
             case "check_balance": {
@@ -254,8 +257,7 @@ public class Service extends Thread {
             //Consensus
             default:
                 System.out.println("ConsensusID: " + this.message.getInt("consensusID"));
-                String block = this.message.getString("inputValue");
-                Block inputValue = new Block(new JSONObject(block));
+                Block inputValue = new Block(new JSONObject(this.message.getString("inputValue")));
                 if (byzantine) inputValue.byzantine();
 
                 Entry<String, Integer> receivedProcess = null;

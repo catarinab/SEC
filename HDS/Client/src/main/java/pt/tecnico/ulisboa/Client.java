@@ -136,8 +136,8 @@ public class Client extends Thread{
                     this.decideMessages.put(consensusID, new ConcurrentHashMap<>());
                     this.decideMessages.get(consensusID).put(receivedProcess, inputValue);
                 }
-                else if (!this.decideMessages.get(consensusID).containsKey(receivedProcess)) {
-                    this.decideMessages.get(consensusID).put(receivedProcess, inputValue);
+                else if (!this.decideMessages.get(digSignature).containsKey(receivedProcess)) {
+                    this.decideMessages.get(digSignature).put(receivedProcess, operationDTO);
                     int quorumSize = 2 * this.byzantineProcesses + 1;
                     if (this.decideMessages.get(consensusID).size() >= quorumSize) {
                         int validCounter = 0;
