@@ -49,6 +49,15 @@ public class TransferDTO extends OperationDTO{
     }
 
     @Override
+    public void multiplyCurrBalance(int x) {
+        this.prevBalanceSource *= x;
+        this.prevBalanceDest *= x;
+        super.currBalance *= x;
+        this.currBalanceDest *= x;
+        this.amount *= x;
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (obj == null || obj.getClass() != this.getClass()) return false;
 
@@ -60,7 +69,7 @@ public class TransferDTO extends OperationDTO{
 
     @Override
     public String toString(){
-        return "Transfer from account: " + this.publicKey + " with previous balance"+ this.prevBalanceSource+
-                ", to destination account" + this.destination + ", with the value: " + this.amount;
+        return "Transfer from account: " + this.publicKey + " with previous balance "+ this.prevBalanceSource+
+                ", to destination account " + this.destination + ", with the value: " + this.amount;
     }
 }

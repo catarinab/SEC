@@ -34,8 +34,7 @@ public class Blockchain {
         int size = this.chain.size();
         System.out.println("Blockchain: ");
         for (Block block: this.chain) {
-            if (i == size - 1) System.out.println("Block : " + i++ + "- \n" + block.getData());
-            else System.out.println("Block : " + i++ + "- " + block.getData() + ", ");
+            System.out.println("Block " + i++ + ":" + block.getData());
         }
     }
 }

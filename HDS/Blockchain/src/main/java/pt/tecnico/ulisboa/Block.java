@@ -76,7 +76,9 @@ public class Block {
     public String getData(){
         StringBuilder retVal = new StringBuilder();
         for(int i = 0; i < this.transactions; i++) {
+            if (i > 0) retVal.append("\t")
             retVal.append(i).append(" -> source: ").append(this.transactionGroup[i]);
+            if (i < this.transactions - 1) retVal.append("\n");
         }
         return retVal.toString();
     }
