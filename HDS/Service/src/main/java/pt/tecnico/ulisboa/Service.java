@@ -259,6 +259,9 @@ public class Service extends Thread {
                 System.out.println("ConsensusID: " + this.message.getInt("consensusID"));
                 Block inputValue = new Block(new JSONObject(this.message.getString("inputValue")));
                 if (byzantine) inputValue.byzantine();
+                for (OperationDTO op: inputValue.getTransactionGroup()) {
+                    System.out.println(op.toString());
+                }
 
                 Entry<String, Integer> receivedProcess = null;
                 for (Entry<String, Integer> process : this.processes) {

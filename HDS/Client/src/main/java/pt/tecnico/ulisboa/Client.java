@@ -16,8 +16,8 @@ public class Client extends Thread{
     private final int numProcesses;
     private final List<Entry<String,Integer>> processes;
     private final int byzantineProcesses;
-    private ConcurrentHashMap<Integer,ConcurrentHashMap<Entry<String,Integer>,String>> decideMessages = new ConcurrentHashMap<>();
-    private List<Integer> consensusDecided = new java.util.ArrayList<>();
+    private ConcurrentHashMap<String,ConcurrentHashMap<Entry<String,Integer>,OperationDTO>> decideMessages = new ConcurrentHashMap<>();
+    private final List<String> consensusDecided = new java.util.ArrayList<>();
 
     private final Broadcast broadcast;
     private final APL apl;
@@ -120,11 +120,16 @@ public class Client extends Thread{
         String messageID = jsonObject.getString("mac");
         if (jsonObject.getString("command").equals("ack")) acksReceived.put(messageID, jsonObject);
         else if (jsonObject.getString("command").equals("decide")) {
-            int consensusID = jsonObject.getInt("consensusID");
+            OperationDTO operationDTO;
+            JSONObject transaction = new JSONObject(jsonObject.getString("inputValue"));
+            String type = transaction.getString("transaction");
+            if(type.equals("createAcc")) operationDTO = new CreateAccDTO(transaction);
+            else if(type.equals("transfer")) operationDTO = new TransferDTO(transaction);
+            else throw new RuntimeException();
             String receivedHostname = jsonObject.getString("hostname");
             int receivedPort = jsonObject.getInt("port");
-            if (!this.consensusDecided.contains(consensusID)) {
-                String inputValue = jsonObject.getString("inputValue");
+            String digSignature = operationDTO.getDigSignature();
+            if (!this.consensusDecided.contains(digSignature)) {
                 Entry<String, Integer> receivedProcess = null;
                 for (Entry<String, Integer> process: this.processes) {
                     if (process.getKey().equals(receivedHostname) && process.getValue() == receivedPort) {
@@ -132,23 +137,23 @@ public class Client extends Thread{
                         break;
                     }
                 }
-                if (!this.decideMessages.containsKey(consensusID)) {
-                    this.decideMessages.put(consensusID, new ConcurrentHashMap<>());
-                    this.decideMessages.get(consensusID).put(receivedProcess, inputValue);
+                if (!this.decideMessages.containsKey(digSignature)) {
+                    this.decideMessages.put(digSignature, new ConcurrentHashMap<>());
+                    this.decideMessages.get(digSignature).put(receivedProcess, operationDTO);
                 }
                 else if (!this.decideMessages.get(digSignature).containsKey(receivedProcess)) {
                     this.decideMessages.get(digSignature).put(receivedProcess, operationDTO);
                     int quorumSize = 2 * this.byzantineProcesses + 1;
-                    if (this.decideMessages.get(consensusID).size() >= quorumSize) {
+                    if (this.decideMessages.get(digSignature).size() >= quorumSize) {
                         int validCounter = 0;
 
-                        for (Entry<String, Integer> key: this.decideMessages.get(consensusID).keySet()) {
-                            if (this.decideMessages.get(consensusID).get(key).equals(inputValue)) validCounter++;
+                        for (Entry<String, Integer> key: this.decideMessages.get(digSignature).keySet()) {
+                            if (this.decideMessages.get(digSignature).get(key).equals(operationDTO)) validCounter++;
                         }
                         if (validCounter >= quorumSize) {
-                            this.decideMessages.remove(consensusID);
-                            this.consensusDecided.add(consensusID);
-                            System.out.println("\nThe string \"" + inputValue + "\" has been appended to the blockchain.");
+                            this.decideMessages.remove(digSignature);
+                            this.consensusDecided.add(digSignature);
+                            System.out.println("\nThe operation \"" + operationDTO.toString() + "\" has been appended to the blockchain.");
                         }
                     }
                 }

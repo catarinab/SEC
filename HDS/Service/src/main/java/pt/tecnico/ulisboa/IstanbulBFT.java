@@ -127,6 +127,14 @@ public class IstanbulBFT {
                     System.out.println("============BLOCKCHAIN============");
                     this.blockchain.printBlockchain();
 
+                    for (OperationDTO operation: inputValue.getTransactionGroup()) {
+                        Entry<String, Integer> clientID = operation.getClientID();
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("command", "decide");
+                        jsonObject.put("inputValue", operation.toJsonObj().toString());
+                        this.apl.send(operation.toJsonObj().toString() + "decide", jsonObject.toString(), clientID.getKey(), clientID.getValue());
+                    }
+
                     synchronized (this.currentConsensus) {
                         this.currentConsensus.id++;
                         this.currentConsensus.notify();

@@ -48,7 +48,7 @@ public class Block {
 
     public void byzantine(){
         for(int i = 0; i < this.transactions; i++){
-            this.transactionGroup[i].multiplyCurrBalance();
+            this.transactionGroup[i].multiplyCurrBalance(1000);
         }
     }
 
