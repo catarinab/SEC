@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class Block {
     //hash of the data
@@ -76,7 +77,7 @@ public class Block {
     public String getData(){
         StringBuilder retVal = new StringBuilder();
         for(int i = 0; i < this.transactions; i++) {
-            if (i > 0) retVal.append("\t")
+            if (i > 0) retVal.append("\t");
             retVal.append(i).append(" -> source: ").append(this.transactionGroup[i]);
             if (i < this.transactions - 1) retVal.append("\n");
         }

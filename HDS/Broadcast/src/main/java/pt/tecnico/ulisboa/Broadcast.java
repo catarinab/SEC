@@ -6,6 +6,7 @@ import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
 import java.util.Map.Entry;
 import java.util.List;
 
@@ -20,8 +21,9 @@ public class Broadcast {
 
     public void doBroadcast(String inputValue, String message) throws IOException, InterruptedException, NoSuchPaddingException,
             IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+        String timeStamp = new Date().toString();
         for (Entry<String, Integer> process: processes) {
-            this.apl.send(inputValue, message, process.getKey(), process.getValue());
+            this.apl.send(inputValue, message, process.getKey(), process.getValue(), timeStamp);
         }
     }
 }

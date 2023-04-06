@@ -23,16 +23,17 @@ public class Service extends Thread {
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
     private Blockchain blockchain = new Blockchain(3);
     //current state of accounts
-    private ConcurrentHashMap<String, Account> accounts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Account> accounts;
+    private final int fee = 1;
 
     static class ConsensusCounter {
-        public volatile  int counter = 0;
+        public volatile int counter = 0;
     }
     static class CurrentConsensus {
         public volatile int id = 0;
     }
-    private ConsensusCounter consensusCounter = new ConsensusCounter();
-    private CurrentConsensus currentConsensus = new CurrentConsensus();
+    private final ConsensusCounter consensusCounter;
+    private final CurrentConsensus currentConsensus;
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private Block currBlock = new Block("", this.blockchain.getMaxTransactions());
     private JSONObject message = null;
@@ -43,10 +44,13 @@ public class Service extends Thread {
         this.processes = processes;
         this.byzantine = byzantine;
         this.byzantineProcesses = byzantineProcesses;
+        this.accounts = new ConcurrentHashMap<>();
         this.apl = new APL(hostname, port, acksReceived);
         this.leader = leader;
         this.leaderID = leaderID;
         this.broadcast = new Broadcast(processes, this.apl);
+        this.consensusCounter = new ConsensusCounter();
+        this.currentConsensus = new CurrentConsensus();
     }
 
     public Service(Service father, JSONObject message) {
@@ -151,49 +155,55 @@ public class Service extends Thread {
         }
     }
 
+    public void sendErrorMessage(String inputValue, String digSignature, String hostname, int port) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("command", "error");
+        jsonObject.put("inputValue", inputValue);
+        jsonObject.put("digSignature", digSignature);
+        try {
+            this.apl.send(inputValue + "error", jsonObject.toString(), hostname, port);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public boolean create_account(String publicKey, String digSignature, String hostname, int port)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
         System.out.println("Public Key: " + publicKey);
-        if(this.accounts.containsKey(publicKey)) return false;
         byte[] decodedKey = Base64.getDecoder().decode(publicKey);
         PublicKey receivedKey = KeyFactory.getInstance("RSA")
                 .generatePublic(new X509EncodedKeySpec(decodedKey));
         Account newAcc = new Account(receivedKey);
-        this.accounts.put(publicKey, newAcc);
+        synchronized (this.accounts) {
+            if (this.accounts.containsKey(publicKey)) return false;
+            this.accounts.put(publicKey, newAcc);
+        }
         OperationDTO op = new CreateAccDTO(publicKey, digSignature, newAcc.check_balance(), hostname, port);
         this.addCurrBlock(op);
         return true;
     }
 
     public int check_balance(String publicKey) {
-        if (this.accounts.containsKey(publicKey)){
-            return this.accounts.get(publicKey).check_balance();
-        }
-        else{
-            return -1;
-        }
+        if (!this.accounts.containsKey(publicKey)) return -1;
+        return this.blockchain.check_balance(publicKey);
     }
 
-    //Como verificar q é mesmo a pessoa -> usar public key da source
+
     public boolean transfer(String source, String destination, int amount, String digSignature, String hostname, int port) {
+        if(source.equals(destination) || amount <= 0) return false;
         Account sourceAcc = this.accounts.get(source);
         Account destinationAcc = this.accounts.get(destination);
-        int prevBalanceSource = sourceAcc.check_balance();
-        int prevBalanceDest = destinationAcc.check_balance();
-        if(amount > 0) {
-            if(sourceAcc.check_balance() - amount < 0) return false;
-            sourceAcc.removeBalance(amount);
+        synchronized (this.accounts) {
+            int prevBalanceSource = sourceAcc.check_balance();
+            int prevBalanceDest = destinationAcc.check_balance();
+            if (sourceAcc.check_balance() - amount - this.fee < 0) return false;
+            sourceAcc.removeBalance(amount + this.fee);
             destinationAcc.addBalance(amount);
+            OperationDTO op = new TransferDTO(source, digSignature, prevBalanceSource, sourceAcc.check_balance(),
+                    prevBalanceDest, destinationAcc.check_balance(), destination, amount, this.fee, hostname, port);
+            this.addCurrBlock(op);
+            return true;
         }
-        else if(amount < 0) {
-            if(destinationAcc.check_balance() - amount < 0) return false;
-            destinationAcc.removeBalance(amount);
-            sourceAcc.addBalance(amount);
-        }
-        OperationDTO op = new TransferDTO(source, digSignature, prevBalanceSource, sourceAcc.check_balance(),
-                prevBalanceDest, destinationAcc.check_balance(), destination, amount, hostname, port);
-        this.addCurrBlock(op);
-        return true;
     }
 
     public boolean isInBlockchain(String data) {
@@ -230,28 +240,51 @@ public class Service extends Thread {
         System.out.println("This code is running in a thread with command: " + command);
         switch (command) {
             case "create_account": {
-                Entry<String, Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
                 String keyClient = this.message.getString("key");
                 try {
-                    if (!this.create_account(keyClient, digSignature, receivedHostname, receivedPort)) return;
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    if (!this.create_account(keyClient, digSignature, receivedHostname, receivedPort))
+                        throw new Exception("account already exists");
+                } catch (Exception except) {
+                    String inputValue = "There was an error when creating the account. Your account might already exist.";
+                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
                 }
                 break;
             }
             case "transfer": {
-                Entry<String, Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
                 String amount = this.message.getString("amount");
                 String source = this.message.getString("key");
                 String destination = this.message.getString("destination");
-                if (!this.transfer(source, destination, Integer.parseInt(amount), digSignature, receivedHostname,
-                        receivedPort)) return;
+                try {
+                    if (!this.transfer(source, destination, Integer.parseInt(amount), digSignature, receivedHostname,
+                            receivedPort))
+                        throw new Exception("transfer could not be made");
+                } catch (Exception except) {
+                    String inputValue = "There was an error when executing the transfer. Please check if your account exist, " +
+                            "if you have enough balance to complete your transfer (there is a fee per transaction in a block)" +
+                            " or if you are not trying to transfer money to your own account by mistake..";
+                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
+
+                }
+
                 break;
             }
             case "check_balance": {
-                Entry<String, Integer> clientID = new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort);
                 String keyClient = this.message.getString("key");
-                if (this.check_balance(keyClient) == -1) return;
+                if (this.message.getString("inputValue").equals("strong")) {
+                    try {
+                        int balance = this.check_balance(keyClient);
+                        if (balance == -1) {
+                            throw new Exception("account does not exist");
+                        }
+                        else {
+                            //send balance
+                        }
+                    } catch (Exception except) {
+                        String inputValue = "There was an error when checking the balance. Please check if your account exists.";
+                        sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
+
+                    }
+                }
                 break;
             }
             //Consensus

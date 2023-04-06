@@ -1,14 +1,14 @@
 package pt.tecnico.ulisboa;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.Iterator;
 
 public class Blockchain {
     private final LinkedList<Block> chain;
     private int maxTransactions;
 
     public Blockchain(int maxTransactions) {
-        this.chain = new LinkedList<Block>();
+        this.chain = new LinkedList<>();
         this.maxTransactions = maxTransactions;
     }
 
@@ -21,6 +21,16 @@ public class Blockchain {
 
     public synchronized int getMaxTransactions(){
         return this.maxTransactions;
+    }
+
+    public int check_balance(String publicKey){
+        int balance = -1;
+        Iterator<Block> listIterator = this.chain.descendingIterator();
+        while (listIterator.hasNext()) {
+            balance = listIterator.next().check_balance(publicKey);
+            if (balance != -1) break;
+        }
+        return balance;
     }
 
     public synchronized ArrayList<String> getBlockchainData() {

@@ -29,6 +29,7 @@ public class TransferDTO extends OperationDTO{
         this.currBalanceDest = jsonObject.getInt("currBalanceDest");
         this.destination = jsonObject.getString("destination");
         this.amount = jsonObject.getInt("amount");
+        this.fee = jsonObject.getInt("fee");
 
     }
 

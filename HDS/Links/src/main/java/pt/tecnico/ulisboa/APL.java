@@ -44,14 +44,13 @@ public class APL {
         return publicKey;
     }
 
-    public void send(String inputValue, String message, String hostName, int port) throws IOException,
+    public void send(String inputValue, String message, String hostName, int port, String timestamp) throws IOException,
             InterruptedException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
             IllegalBlockSizeException, BadPaddingException {
 
         JSONObject jsonToSend = new JSONObject(message);
         Cipher encryptCipher = Cipher.getInstance("RSA");
         encryptCipher.init(Cipher.ENCRYPT_MODE, this.privateKey);
-        String timestamp = new Date().toString();
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] macResult = digest.digest((inputValue+timestamp).getBytes());
         byte[] encryptedMac = encryptCipher.doFinal(macResult);
@@ -61,6 +60,13 @@ public class APL {
         jsonToSend.put("hostname", this.hostname);
         jsonToSend.put("port", this.port);
         this.stubbornLink.send(jsonToSend.toString(), hostName, port);
+    }
+
+    public void send(String inputValue, String message, String hostName, int port) throws NoSuchPaddingException,
+            IllegalBlockSizeException, IOException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException,
+            InterruptedException {
+        String timeStamp = new Date().toString();
+        this.send(inputValue, message, hostName, port, timeStamp);
     }
 
     public String receive() throws IOException {
