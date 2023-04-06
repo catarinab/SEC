@@ -24,6 +24,11 @@ public abstract class OperationDTO {
 
     public abstract JSONObject toJsonObj();
 
+    public int check_balance(String publicKey) {
+        if (this.publicKey.equals(publicKey)) return this.currBalance;
+        else return -1;
+    }
+
     //for byzantine purposes
     public void multiplyCurrBalance(int x) {
         this.currBalance *= x;
@@ -36,6 +41,7 @@ public abstract class OperationDTO {
     public Map.Entry<String, Integer> getClientID() {
         return new AbstractMap.SimpleEntry<>(this.hostname, this.port);
     }
+
     public boolean equals(Object obj) {
         if (obj == null || obj.getClass() != this.getClass()) return false;
 

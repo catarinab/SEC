@@ -74,6 +74,15 @@ public class Block {
         }
     }
 
+    public int check_balance(String publicKey){
+        int balance = -1;
+        for (int i = transactionGroup.length - 1; i >= 0; i--) {
+            balance = transactionGroup[i].check_balance(publicKey);
+            if (balance != -1) break;
+        }
+        return balance;
+    }
+
     public String getData(){
         StringBuilder retVal = new StringBuilder();
         for(int i = 0; i < this.transactions; i++) {

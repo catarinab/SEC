@@ -8,9 +8,10 @@ public class TransferDTO extends OperationDTO{
     public int prevBalanceDest;
     public int currBalanceDest;
     public int amount;
+    public int fee;
 
     public TransferDTO(String publicKey, String digSignature, int prevBalanceSource, int currBalanceSource,
-                       int prevBalanceDest, int currBalanceDest, String destination, int amount, String hostname,
+                       int prevBalanceDest, int currBalanceDest, String destination, int amount, int fee, String hostname,
                        int port) {
         super(publicKey, digSignature, currBalanceSource, hostname, port);
         this.prevBalanceSource = prevBalanceSource;
@@ -18,6 +19,7 @@ public class TransferDTO extends OperationDTO{
         this.currBalanceDest = currBalanceDest;
         this.destination = destination;
         this.amount = amount;
+        this.fee = fee;
     }
 
     public TransferDTO(JSONObject jsonObject){
@@ -46,7 +48,15 @@ public class TransferDTO extends OperationDTO{
         jsonObject.put("currBalanceDest", this.currBalanceDest);
         jsonObject.put("destination", this.destination);
         jsonObject.put("amount", this.amount);
+        jsonObject.put("fee", this.fee);
         return jsonObject;
+    }
+
+    @Override
+    public int check_balance(String publicKey) {
+        if (super.publicKey.equals(publicKey)) return super.currBalance;
+        else if (this.destination.equals(publicKey)) return this.currBalanceDest;
+        else return -1;
     }
 
     @Override
@@ -70,7 +80,9 @@ public class TransferDTO extends OperationDTO{
 
     @Override
     public String toString(){
-        return "Transfer from account: " + this.publicKey + " with previous balance "+ this.prevBalanceSource+
-                ", to destination account " + this.destination + ", with the value: " + this.amount;
+        return "Transfer from account: " + this.publicKey + " with previous balance " + this.prevBalanceSource +
+                " and new balance " + this.currBalance + ", to destination account " + this.destination +
+                " with previous balance "+ this.prevBalanceDest + " and new balance " + this.currBalanceDest +
+                ", with the value: " + this.amount + ", and the fee: " + this.fee;
     }
 }
