@@ -26,4 +26,5 @@ public class Account {
     public String getPublicKey(){
         return this.publicKey.toString();
     }
+
 }
