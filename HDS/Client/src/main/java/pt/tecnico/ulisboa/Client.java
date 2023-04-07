@@ -176,13 +176,14 @@ public class Client extends Thread{
                 System.out.println("There was an error with the request: " + inputValue);
             }
         }
-        else if (jsonObject.getString("command").equals("balance")) {
+        else if (jsonObject.getString("command").equals("strong_balance") || jsonObject.getString("command")
+                .equals("weak_balance")) {
             String inputValue = jsonObject.getString("inputValue");
             String digSignature = jsonObject.getString("digSignature");
             String receivedHostname = jsonObject.getString("hostname");
             int receivedPort = jsonObject.getInt("port");
             if (this.quorumReplies(inputValue, digSignature, receivedHostname, receivedPort)) {
-                System.out.println("The strong read returned your account balance: " + inputValue);
+                System.out.println("Your "+ jsonObject.getString("command")+"is : " + inputValue);
             }
         }
         else if (command.equals("decide")) {

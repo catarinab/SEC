@@ -167,6 +167,18 @@ public class Service extends Thread {
         }
     }
 
+    public void sendMessage(String inputValue, String digSignature, String hostname, int port, String command) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("command", command);
+        jsonObject.put("inputValue", inputValue);
+        jsonObject.put("digSignature", digSignature);
+        try {
+            this.apl.send(inputValue + command, jsonObject.toString(), hostname, port);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public boolean create_account(String publicKey, String digSignature, String hostname, int port)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
         System.out.println("Public Key: " + publicKey);
@@ -183,9 +195,13 @@ public class Service extends Thread {
         return true;
     }
 
-    public int check_balance(String publicKey) {
+    public int check_strong_balance(String publicKey) {
         if (!this.accounts.containsKey(publicKey)) return -1;
         return this.blockchain.check_balance(publicKey);
+    }
+    public int check_weak_balance(String publicKey) {
+        if (!this.accounts.containsKey(publicKey)) return -1;
+        return this.accounts.get(publicKey).check_balance();
     }
 
 
@@ -270,34 +286,29 @@ public class Service extends Thread {
             }
             case "check_balance": {
                 String keyClient = this.message.getString("key");
-                if (this.message.getString("inputValue").equals("strong")) {
-                    try {
-                        int balance = this.check_balance(keyClient);
-                        if (balance == -1) {
-                            throw new Exception("account does not exist");
-                        }
-                        else {
-                            JSONObject jsonObject = new JSONObject();
-                            jsonObject.put("command", "balance");
-                            jsonObject.put("inputValue", Integer.toString(balance));
-                            jsonObject.put("digSignature", digSignature);
-                            try {
-                                this.apl.send(balance + "balance", jsonObject.toString(), receivedHostname,
-                                        receivedPort);
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    } catch (Exception except) {
-                        String inputValue = "There was an error when checking the balance. Please check if your account " +
-                                "exists.";
-                        sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
-
+                int balance = -1;
+                String balanceCommand = "error";
+                try {
+                    if(this.message.getString("inputValue").equals("strong")) {
+                        balance = this.check_strong_balance(keyClient);
+                        balanceCommand = "strong_balance";
                     }
-                }
-                else{
-                    String inputValue = "Only strong read implemented";
+                    else if(this.message.getString("inputValue").equals("weak")) {
+                        balance = this.check_weak_balance(keyClient);
+                        balanceCommand = "weak_balance";
+                    }
+                    if (balance == -1) throw new Exception("account does not exist");
+                    try {
+                        sendMessage(Integer.toString(balance), digSignature, receivedHostname, receivedPort,
+                                balanceCommand);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                } catch (Exception except) {
+                    String inputValue = "There was an error when checking the balance. Please check if your account " +
+                            "exists.";
                     sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
+
                 }
                 break;
             }
