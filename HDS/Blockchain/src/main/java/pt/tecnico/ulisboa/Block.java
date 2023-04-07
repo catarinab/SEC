@@ -76,9 +76,8 @@ public class Block {
 
     public int check_balance(String publicKey){
         int balance = -1;
-        for (int i = transactionGroup.length - 1; i >= 0; i--) {
+        for (int i = transactionGroup.length - 1; i >= 0 && balance == -1; i--) {
             balance = transactionGroup[i].check_balance(publicKey);
-            if (balance != -1) break;
         }
         return balance;
     }

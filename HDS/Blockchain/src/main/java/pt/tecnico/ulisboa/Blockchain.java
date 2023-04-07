@@ -41,7 +41,6 @@ public class Blockchain {
 
     public synchronized void printBlockchain() {
         int i = 0;
-        int size = this.chain.size();
         System.out.println("Blockchain: ");
         for (Block block: this.chain) {
             System.out.println("Block " + i++ + ":" + block.getData());

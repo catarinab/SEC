@@ -277,13 +277,27 @@ public class Service extends Thread {
                             throw new Exception("account does not exist");
                         }
                         else {
-                            //send balance
+                            JSONObject jsonObject = new JSONObject();
+                            jsonObject.put("command", "balance");
+                            jsonObject.put("inputValue", Integer.toString(balance));
+                            jsonObject.put("digSignature", digSignature);
+                            try {
+                                this.apl.send(balance + "balance", jsonObject.toString(), receivedHostname,
+                                        receivedPort);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
                         }
                     } catch (Exception except) {
-                        String inputValue = "There was an error when checking the balance. Please check if your account exists.";
+                        String inputValue = "There was an error when checking the balance. Please check if your account " +
+                                "exists.";
                         sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
 
                     }
+                }
+                else{
+                    String inputValue = "Only strong read implemented";
+                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
                 }
                 break;
             }
