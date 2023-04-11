@@ -23,7 +23,7 @@ public class Blockchain {
         return this.maxTransactions;
     }
 
-    public int check_balance(String publicKey){
+    public synchronized int check_balance(String publicKey){
         int balance = -1;
         Iterator<Block> listIterator = this.chain.descendingIterator();
         while (listIterator.hasNext()) {
@@ -37,6 +37,14 @@ public class Blockchain {
         ArrayList<String> data = new ArrayList<>();
         for (Block block: this.chain) data.add(block.getData());
         return data;
+    }
+
+    public synchronized Block[] getLastBlocks(int quantity) {
+        Block[] blocks = new Block[quantity];
+        Iterator<Block> listIterator = this.chain.descendingIterator();
+        while (listIterator.hasNext() &&  0 < quantity) blocks[--quantity] = listIterator.next();
+        while (0 < quantity) blocks[--quantity] = null;
+        return blocks;
     }
 
     public synchronized void printBlockchain() {

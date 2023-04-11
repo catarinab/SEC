@@ -1,11 +1,14 @@
 package pt.tecnico.ulisboa;
 
 import org.json.JSONObject;
+
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Block {
     //hash of the data
@@ -20,6 +23,15 @@ public class Block {
         this.previousHash = previousHash;
         this.transactionGroup = new OperationDTO[maxTransactions];
         this.maxTransactions = maxTransactions;
+    }
+
+    public Block(ConcurrentHashMap<String, Integer> weakState) {
+        int index = 0;
+        this.transactionGroup = new OperationDTO[weakState.size()];
+        this.maxTransactions = weakState.size();
+        for (String publicKey: weakState.keySet()) {
+            this.transactionGroup[index++] = new BalanceDTO(publicKey, weakState.get(publicKey));
+        }
     }
 
     public Block(JSONObject jsonObject) {
@@ -90,6 +102,18 @@ public class Block {
             if (i < this.transactions - 1) retVal.append("\n");
         }
         return retVal.toString();
+    }
+
+    public HashMap<String, Integer> getAccountsBalance(){
+        HashMap<String, Integer> accountsBalance = new HashMap<>();
+        for(int i = this.maxTransactions; i >= 0 ; --i) {
+            if(!accountsBalance.containsKey(transactionGroup[i].publicKey)) accountsBalance.put(transactionGroup[i].publicKey, transactionGroup[i].currBalance);
+            if(TransferDTO.class.isAssignableFrom(transactionGroup[i].getClass())) {
+                TransferDTO transfer = (TransferDTO) transactionGroup[i];
+                if(!accountsBalance.containsKey(transfer.destination)) accountsBalance.put(transfer.destination, transfer.currBalanceDest);
+            }
+        }
+        return accountsBalance;
     }
 
     public void reset() {

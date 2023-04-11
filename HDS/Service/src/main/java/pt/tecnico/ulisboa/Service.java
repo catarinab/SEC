@@ -24,6 +24,10 @@ public class Service extends Thread {
     private Blockchain blockchain = new Blockchain(3);
     //current state of accounts
     private final ConcurrentHashMap<String, Account> accounts;
+    private final ConcurrentHashMap<String, Integer> weakState;
+    private Block weakBlock;
+    private final LinkedList<String> weakSignatures;
+    private final int weakInterval = 4;
     private final int fee = 1;
 
     static class ConsensusCounter {
@@ -45,12 +49,14 @@ public class Service extends Thread {
         this.byzantine = byzantine;
         this.byzantineProcesses = byzantineProcesses;
         this.accounts = new ConcurrentHashMap<>();
+        this.weakState = new ConcurrentHashMap<>();
         this.apl = new APL(hostname, port, acksReceived);
         this.leader = leader;
         this.leaderID = leaderID;
         this.broadcast = new Broadcast(processes, this.apl);
         this.consensusCounter = new ConsensusCounter();
         this.currentConsensus = new CurrentConsensus();
+        this.weakSignatures = new LinkedList<>();
     }
 
     public Service(Service father, JSONObject message) {
@@ -71,6 +77,8 @@ public class Service extends Thread {
         this.currentConsensus = father.currentConsensus;
         this.currBlock = father.currBlock;
         this.message = message;
+        this.weakSignatures = father.weakSignatures;
+        this.weakState = father.weakState;
     }
 
 
@@ -148,6 +156,26 @@ public class Service extends Thread {
                 }
 
                 this.currBlock.reset();
+
+                synchronized (this.currentConsensus) {
+                    try {
+                        this.currentConsensus.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if ((consensusID - 1) % this.weakInterval == 0) {
+                    Block[] blocks = this.blockchain.getLastBlocks(3);
+                    for (Block block : blocks) {
+                        if (block == null) continue;
+                        HashMap<String, Integer> accountsBalance = block.getAccountsBalance();
+                        for (String publicKey : accountsBalance.keySet()) {
+                            this.weakState.put(publicKey, accountsBalance.get(publicKey));
+                        }
+                    }
+                    this.weakBlock = new Block(this.weakState);
+                }
             }
         }
         catch(Exception e){

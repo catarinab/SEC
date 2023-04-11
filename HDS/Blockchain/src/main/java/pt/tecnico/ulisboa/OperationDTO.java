@@ -4,15 +4,14 @@ import org.json.JSONObject;
 
 import java.util.AbstractMap;
 import java.util.Map;
-import java.util.Random;
 
 //Data Transfer Object for Operations (transfers and create account)
 public abstract class OperationDTO {
     public String digSignature;
     public String publicKey;
     public int currBalance;
-    public final String hostname;
-    public final int port;
+    public String hostname;
+    public int port;
 
     public OperationDTO(String publicKey, String digSignature, int currBalance, String hostname, int port) {
         this.publicKey = publicKey;
@@ -20,6 +19,11 @@ public abstract class OperationDTO {
         this.currBalance = currBalance;
         this.hostname = hostname;
         this.port = port;
+    }
+
+    public OperationDTO(String publicKey, int currBalance) {
+        this.publicKey = publicKey;
+        this.currBalance = currBalance;
     }
 
     public abstract JSONObject toJsonObj();
