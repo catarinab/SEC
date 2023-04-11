@@ -4,6 +4,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,6 +48,17 @@ public class Client extends Thread{
         this.broadcast = client.broadcast;
         this.acksReceived = client.acksReceived;
 
+    }
+
+    public void requestWeakRead() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
+            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
+        Random rand = new Random();
+        Entry<String, Integer> randomServer = this.processes.get(rand.nextInt(this.processes.size()));
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("command", "check_balance");
+        jsonObject.put("inputValue", "weak");
+        this.apl.send("check_balance" + "weak", jsonObject.toString(), randomServer.getKey(),
+                randomServer.getValue());
     }
 
     public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException,
@@ -96,7 +109,7 @@ public class Client extends Thread{
                     try{
                         if (!splitMessage[1].equals("weak") && !splitMessage[1].equals("strong"))
                             throw new RuntimeException("wrong command specification");
-                        client.send(command, splitMessage[1]);
+                        client.requestWeakRead();
                     }
                     catch (Exception e) {
                         System.out.println("check_balance option");
@@ -161,7 +174,7 @@ public class Client extends Thread{
         return false;
     }
 
-    public void receive() throws IOException {
+    public void receive() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         String message = this.apl.receive();
         JSONObject jsonObject = new JSONObject(message);
         String messageID = jsonObject.getString("mac");
@@ -176,15 +189,39 @@ public class Client extends Thread{
                 System.out.println("There was an error with the request: " + inputValue);
             }
         }
-        else if (jsonObject.getString("command").equals("strong_balance") || jsonObject.getString("command")
-                .equals("weak_balance")) {
+        else if (jsonObject.getString("command").equals("strong_balance")) {
             String inputValue = jsonObject.getString("inputValue");
             String digSignature = jsonObject.getString("digSignature");
             String receivedHostname = jsonObject.getString("hostname");
             int receivedPort = jsonObject.getInt("port");
             if (this.quorumReplies(inputValue, digSignature, receivedHostname, receivedPort)) {
-                System.out.println("Your "+ jsonObject.getString("command")+"is : " + inputValue);
+                System.out.println("Your Strong balance is : " + inputValue);
             }
+        }
+        else if (jsonObject.getString("command").equals("weak_balance")) {
+            String inputValue = jsonObject.getString("inputValue");
+            int sigRemaining = jsonObject.getInt("sigNum");
+            String receivedHostname = jsonObject.getString("hostname");
+            int receivedPort = jsonObject.getInt("port");
+            while(sigRemaining > 0) {
+                String digSignature = jsonObject.getString("digSignature"+--sigRemaining);
+                String publicKey = jsonObject.getString("publicKey"+--sigRemaining);
+                byte[] encodedKey = Base64.getDecoder().decode(publicKey);
+                PublicKey receivedKey = KeyFactory.getInstance("RSA")
+                        .generatePublic(new X509EncodedKeySpec(encodedKey));
+                Cipher decryptCipher = Cipher.getInstance("RSA");
+                decryptCipher.init(Cipher.DECRYPT_MODE, receivedKey);
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                byte[] encryptedMac = Base64.getDecoder().decode(digSignature);
+                byte[] decryptedMacReceived = decryptCipher.doFinal(encryptedMac);
+                byte[] macResult = digest.digest(inputValue.getBytes());
+                if (!Arrays.toString(decryptedMacReceived).equals(Arrays.toString(macResult))) break;
+            }
+            if(sigRemaining == 0) System.out.println("Your weak balance, verified with "+ jsonObject.getInt("sigNum")
+                    + " signatures from servers, is : " + inputValue);
+            else System.out.println("There was an error with your request for your weak balance. It is possible that the" +
+                    " request was answered by a byzantine server. The address of the server is "+ receivedHostname +
+                    " and the port is: " + receivedPort);
         }
         else if (command.equals("decide")) {
             String inputValue = jsonObject.getString("inputValue");
