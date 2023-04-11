@@ -32,7 +32,7 @@ public class APL {
         KeyPair pair = generator.generateKeyPair();
         this.privateKey = pair.getPrivate();
         this.publicKey = pair.getPublic();
-        //now, we save the private key in a file, to emulate a PKI
+        //now, we save the public key in a file, to emulate a PKI
         FileOutputStream keyStream = new FileOutputStream("../"+hostname+","+port+"key.txt");
         keyStream.write(Base64.getEncoder().encodeToString(this.publicKey.getEncoded()).getBytes());
         keyStream.close();
@@ -112,6 +112,43 @@ public class APL {
             throw new RuntimeException(e);
         }
         return received;
+    }
+
+    public String sign(String message) throws IOException, InterruptedException, NoSuchPaddingException,
+            NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        Cipher encryptCipher = Cipher.getInstance("RSA");
+        encryptCipher.init(Cipher.ENCRYPT_MODE, this.privateKey);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(message.getBytes());
+        byte[] signature = encryptCipher.doFinal(hash);
+        return Base64.getEncoder().encodeToString(signature);
+    }
+
+    public byte[] unsign(String sigBase64, String keyBase64, String hostPort) throws IOException {
+        byte[] message;
+        try {
+            BufferedReader keyStream = new BufferedReader(new InputStreamReader(new FileInputStream
+                    ("../"+hostPort+"key.txt"), StandardCharsets.UTF_8));
+            String PKIKeyBase64 = keyStream.readLine();
+            keyStream.close();
+            if (!PKIKeyBase64.equals(keyBase64)) {
+                System.out.println("Wrong key.");
+                System.out.println(PKIKeyBase64);
+                System.out.println(keyBase64);
+                throw new RuntimeException();
+            }
+            byte[] encodedKey = Base64.getDecoder().decode(keyBase64);
+            PublicKey receivedKey = KeyFactory.getInstance("RSA")
+                    .generatePublic(new X509EncodedKeySpec(encodedKey));
+            Cipher decryptCipher = Cipher.getInstance("RSA");
+            decryptCipher.init(Cipher.DECRYPT_MODE, receivedKey);
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] signature = Base64.getDecoder().decode(sigBase64);
+            message = decryptCipher.doFinal(signature);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return message;
     }
 
     public StubbornLink getStubbornLink() {

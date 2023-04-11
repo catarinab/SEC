@@ -106,10 +106,10 @@ public class Client extends Thread{
                     }
                     break;
                 case "check_balance":
-                    try{
-                        if (!splitMessage[1].equals("weak") && !splitMessage[1].equals("strong"))
-                            throw new RuntimeException("wrong command specification");
-                        client.requestWeakRead();
+                    try {
+                        if (splitMessage[1].equals("strong")) client.send(command, splitMessage[1]);
+                        else if (splitMessage[1].equals("weak")) client.requestWeakRead();
+                        else throw new RuntimeException("wrong command specification");
                     }
                     catch (Exception e) {
                         System.out.println("check_balance option");
@@ -199,29 +199,33 @@ public class Client extends Thread{
             }
         }
         else if (jsonObject.getString("command").equals("weak_balance")) {
-            String inputValue = jsonObject.getString("inputValue");
-            int sigRemaining = jsonObject.getInt("sigNum");
-            String receivedHostname = jsonObject.getString("hostname");
-            int receivedPort = jsonObject.getInt("port");
-            while(sigRemaining > 0) {
-                String digSignature = jsonObject.getString("digSignature"+--sigRemaining);
-                String publicKey = jsonObject.getString("publicKey"+--sigRemaining);
-                byte[] encodedKey = Base64.getDecoder().decode(publicKey);
-                PublicKey receivedKey = KeyFactory.getInstance("RSA")
-                        .generatePublic(new X509EncodedKeySpec(encodedKey));
-                Cipher decryptCipher = Cipher.getInstance("RSA");
-                decryptCipher.init(Cipher.DECRYPT_MODE, receivedKey);
+            JSONObject weakCheck = new JSONObject(jsonObject.getString("inputValue"));
+            String weakState = weakCheck.getString("weakState");
+            JSONObject signatures = weakCheck.getJSONObject("signatures");
+            int sigRemaining = weakCheck.getInt("sigNum");
+            int quorumSize = 2 * this.byzantineProcesses + 1;
+            if (sigRemaining < quorumSize) System.out.println("Contacted server does not have enough signatures to provide a weakly consistent read yet.");
+            Iterator<String> hostPorts = signatures.keys();
+            while (hostPorts.hasNext()) {
+                String hostPort = hostPorts.next();
+                JSONObject signature = signatures.getJSONObject(hostPort);
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                byte[] encryptedMac = Base64.getDecoder().decode(digSignature);
-                byte[] decryptedMacReceived = decryptCipher.doFinal(encryptedMac);
-                byte[] macResult = digest.digest(inputValue.getBytes());
-                if (!Arrays.toString(decryptedMacReceived).equals(Arrays.toString(macResult))) break;
+                if (!digest.digest(weakState.getBytes()).toString().equals(apl.unsign(signature.getString("signature"), signature.getString("key"), hostPort))) {
+                    break;
+                }
+                sigRemaining--;
             }
-            if(sigRemaining == 0) System.out.println("Your weak balance, verified with "+ jsonObject.getInt("sigNum")
-                    + " signatures from servers, is : " + inputValue);
-            else System.out.println("There was an error with your request for your weak balance. It is possible that the" +
-                    " request was answered by a byzantine server. The address of the server is "+ receivedHostname +
-                    " and the port is: " + receivedPort);
+            if (sigRemaining > 0) {
+                String receivedHostname = jsonObject.getString("hostname");
+                int receivedPort = jsonObject.getInt("port");
+                System.out.println("There was an error with your request for your weak balance. It is possible that the" +
+                        " request was answered by a byzantine server. The address of the server is "+ receivedHostname +
+                        " and the port is: " + receivedPort);
+            }
+            JSONObject weakStateJson = new JSONObject(weakState);
+            int balance = weakStateJson.getInt(Base64.getEncoder().encodeToString(apl.getPublicKey().getEncoded()));
+            System.out.println("Your weak balance, verified with "+ jsonObject.getInt("sigNum")
+                    + " signatures from servers, is : " + balance);
         }
         else if (command.equals("decide")) {
             String inputValue = jsonObject.getString("inputValue");
