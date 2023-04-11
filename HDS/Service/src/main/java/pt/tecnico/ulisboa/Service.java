@@ -25,9 +25,8 @@ public class Service extends Thread {
     //current state of accounts
     private final ConcurrentHashMap<String, Account> accounts;
     private final ConcurrentHashMap<String, Integer> weakState;
-    private Block weakBlock;
     private final LinkedList<String> weakSignatures;
-    private final int weakInterval = 4;
+    private final int weakInterval = 3;
     private final int fee = 1;
 
     static class ConsensusCounter {
@@ -174,13 +173,29 @@ public class Service extends Thread {
                             this.weakState.put(publicKey, accountsBalance.get(publicKey));
                         }
                     }
-                    this.weakBlock = new Block(this.weakState);
                 }
+
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("command", "weakSignature");
+                jsonObject.put("inputValue", this.weakStateToJsonObj());
             }
         }
         catch(Exception e){
             e.printStackTrace();
         }
+    }
+
+    public JSONObject weakStateToJsonObj() {
+        JSONObject jsonObject = new JSONObject();
+        for (String publicKey : this.weakState.keySet()) {
+            jsonObject.put(publicKey, Integer.toString(this.weakState.get(publicKey)));
+        }
+        return jsonObject;
+    }
+
+    public JSONObject weakSignaturesToJsonObj() {
+        JSONObject jsonObject = new JSONObject();
+        return jsonObject;
     }
 
     public void sendErrorMessage(String inputValue, String digSignature, String hostname, int port) {
@@ -231,7 +246,6 @@ public class Service extends Thread {
         if (!this.accounts.containsKey(publicKey)) return -1;
         return this.accounts.get(publicKey).check_balance();
     }
-
 
     public boolean transfer(String source, String destination, int amount, String digSignature, String hostname, int port) {
         if(source.equals(destination) || amount <= 0) return false;

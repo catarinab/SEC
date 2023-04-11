@@ -24,15 +24,6 @@ public class Block {
         this.maxTransactions = maxTransactions;
     }
 
-    public Block(ConcurrentHashMap<String, Integer> weakState) {
-        int index = 0;
-        this.transactionGroup = new OperationDTO[weakState.size()];
-        this.maxTransactions = weakState.size();
-        for (String publicKey: weakState.keySet()) {
-            this.transactionGroup[index++] = new BalanceDTO(publicKey, weakState.get(publicKey));
-        }
-    }
-
     public Block(JSONObject jsonObject) {
         this.previousHash = jsonObject.getString("previousHash");
         this.transactions = jsonObject.getInt("transactions");
