@@ -22,20 +22,26 @@ public class Service extends Thread {
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
     private Blockchain blockchain = new Blockchain(3);
+    private final int fee = 1;
     //current state of accounts
     private final ConcurrentHashMap<String, Account> accounts;
-    private final ConcurrentHashMap<String, Integer> weakState;
-    private final ConcurrentHashMap<Entry<String,Integer>, Entry<String,String>> weakSignatures;
+
+    static class WeakState {
+        public boolean empty = true;
+        public ConcurrentHashMap<String, Integer> state = new ConcurrentHashMap<>();
+        public ConcurrentHashMap<Entry<String, Integer>, Entry<String, String>> signatures = new ConcurrentHashMap<>();
+    }
+    private WeakState weakState;
+    private WeakState prevWeakState;
     private final int weakInterval = 3;
-    private final int fee = 1;
 
     static class ConsensusCounter {
         public volatile int counter = 0;
     }
+    private final ConsensusCounter consensusCounter;
     static class CurrentConsensus {
         public volatile int id = 0;
     }
-    private final ConsensusCounter consensusCounter;
     private final CurrentConsensus currentConsensus;
     private ConcurrentHashMap<Integer, IstanbulBFT> consensusInstances = new ConcurrentHashMap<>();
     private Block currBlock = new Block("", this.blockchain.getMaxTransactions());
@@ -48,8 +54,8 @@ public class Service extends Thread {
         this.byzantine = byzantine;
         this.byzantineProcesses = byzantineProcesses;
         this.accounts = new ConcurrentHashMap<>();
-        this.weakState = new ConcurrentHashMap<>();
-        this.weakSignatures = new ConcurrentHashMap<>();
+        this.weakState = new WeakState();
+        this.prevWeakState = new WeakState();
         this.apl = new APL(hostname, port, acksReceived);
         this.leader = leader;
         this.leaderID = leaderID;
@@ -71,13 +77,13 @@ public class Service extends Thread {
         this.acksReceived = father.acksReceived;
         this.blockchain = father.blockchain;
         this.accounts = father.accounts;
+        this.weakState = father.weakState;
+        this.prevWeakState = father.prevWeakState;
         this.consensusInstances = father.consensusInstances;
         this.consensusCounter = father.consensusCounter;
         this.currentConsensus = father.currentConsensus;
         this.currBlock = father.currBlock;
         this.message = message;
-        this.weakSignatures = father.weakSignatures;
-        this.weakState = father.weakState;
     }
 
 
@@ -164,24 +170,38 @@ public class Service extends Thread {
                     }
                 }
 
-                String signature;
-                synchronized (this.weakState) {
-                    if ((consensusID - 1) % this.weakInterval == 0) {
+                if (consensusID % this.weakInterval == 0) {
+                    String signature;
+                    synchronized (this.weakState) {
+                        if (!this.weakState.empty) {
+                            this.prevWeakState.empty = false;
+                            this.prevWeakState.state.clear();
+                            this.prevWeakState.state.putAll(this.weakState.state);
+                            this.prevWeakState.signatures.clear();
+                            this.prevWeakState.signatures.putAll(this.weakState.signatures);
+                        }
+                        this.weakState.empty = false;
+                        this.weakState.state.clear();
+                        this.weakState.signatures.clear();
                         Block[] blocks = this.blockchain.getLastBlocks(3);
                         for (Block block : blocks) {
                             if (block == null) continue;
                             HashMap<String, Integer> accountsBalance = block.getAccountsBalance();
                             for (String publicKey : accountsBalance.keySet()) {
-                                this.weakState.put(publicKey, accountsBalance.get(publicKey));
+                                this.weakState.state.put(publicKey, accountsBalance.get(publicKey));
                             }
                         }
                     }
-                    signature = apl.sign(this.weakStateToJsonObj().toString());
+                    signature = apl.sign(this.weakStateToJsonObj(this.weakState.state).toString());
+                    System.out.println("Weak state: " + weakState.state.size());
+                    weakState.state.forEach((k,v)-> System.out.println("\t" + k + ", " + v));
+                    
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("command", "weak_signature");
+                    jsonObject.put("inputValue", signature);
+                    TimeUnit.SECONDS.sleep(1);
+                    this.broadcast.doBroadcast(signature + "weak_signature", jsonObject.toString());
                 }
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("command", "weak_signature");
-                jsonObject.put("inputValue", signature);
-                this.broadcast.doBroadcast(signature + "weak_signature", jsonObject.toString());
             }
         }
         catch(Exception e){
@@ -189,18 +209,18 @@ public class Service extends Thread {
         }
     }
 
-    public JSONObject weakStateToJsonObj() {
+    public JSONObject weakStateToJsonObj(ConcurrentHashMap<String, Integer> state) {
         JSONObject jsonObject = new JSONObject();
-        for (String publicKey : this.weakState.keySet()) {
-            jsonObject.put(publicKey, this.weakState.get(publicKey));
+        for (String publicKey : state.keySet()) {
+            jsonObject.put(publicKey, state.get(publicKey));
         }
         return jsonObject;
     }
 
-    public JSONObject weakSignaturesToJsonObj() {
+    public JSONObject weakSignaturesToJsonObj(ConcurrentHashMap<Entry<String, Integer>, Entry<String, String>> signatures) {
         JSONObject jsonObject = new JSONObject();
-        for (Entry<String,Integer> processID : this.weakSignatures.keySet()) {
-            Entry<String,String> signature = this.weakSignatures.get(processID);
+        for (Entry<String,Integer> processID : signatures.keySet()) {
+            Entry<String,String> signature = signatures.get(processID);
             JSONObject sigJsonObject = new JSONObject();
             sigJsonObject.put("key", signature.getKey());
             sigJsonObject.put("signature", signature.getValue());
@@ -209,13 +229,13 @@ public class Service extends Thread {
         return jsonObject;
     }
 
-    public void sendErrorMessage(String inputValue, String digSignature, String hostname, int port) {
+    public void sendErrorMessage(String inputValue, String digSignature, String hostname, int port, String errorCommand) {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("command", "error");
+        jsonObject.put("command", errorCommand);
         jsonObject.put("inputValue", inputValue);
         jsonObject.put("digSignature", digSignature);
         try {
-            this.apl.send(inputValue + "error", jsonObject.toString(), hostname, port);
+            this.apl.send(inputValue + errorCommand, jsonObject.toString(), hostname, port);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -315,7 +335,7 @@ public class Service extends Thread {
                         throw new Exception("account already exists");
                 } catch (Exception except) {
                     String inputValue = "There was an error when creating the account. Your account might already exist.";
-                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
+                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort, "error");
                 }
                 break;
             }
@@ -327,11 +347,11 @@ public class Service extends Thread {
                     if (!this.transfer(source, destination, Integer.parseInt(amount), digSignature, receivedHostname,
                             receivedPort))
                         throw new Exception("transfer could not be made");
-                } catch (Exception except) {
+                } catch (Exception e) {
                     String inputValue = "There was an error when executing the transfer. Please check if your account exist, " +
                             "if you have enough balance to complete your transfer (there is a fee per transaction in a block)" +
-                            " or if you are not trying to transfer money to your own account by mistake..";
-                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
+                            " or if you are not trying to transfer money to your own account by mistake.";
+                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort, "error");
 
                 }
 
@@ -342,32 +362,44 @@ public class Service extends Thread {
                 String message = "";
                 String balanceCommand = "error";
                 try {
-                    if(this.message.getString("inputValue").equals("strong")) {
+                    if (this.message.getString("inputValue").equals("strong")) {
                         int balance = this.check_strong_balance(keyClient);
-                        if (balance == -1) throw new Exception("account does not exist");
+                        if (balance == -1) throw new Exception("Strongly consistent read - Your account may not exist or may not have been commited to the blockchain yet.");
                         message = Integer.toString(balance);
                         balanceCommand = "strong_balance";
                     }
-                    else if(this.message.getString("inputValue").equals("weak")) {
-                        if (!this.weakState.containsKey(keyClient)) throw new Exception("account does not exist");
-                        JSONObject jsonObject = new JSONObject();
-                        jsonObject.put("weakState", this.weakStateToJsonObj().toString());
-                        jsonObject.put("signatures", this.weakSignaturesToJsonObj());
-                        jsonObject.put("sigNum", this.weakSignatures.size());
-                        message = jsonObject.toString();
-                        balanceCommand = "weak_balance";
+                    else if (this.message.getString("inputValue").equals("weak")) {
+                        synchronized (this.weakState) {
+                            int quorumSize = 2 * this.byzantineProcesses + 1;
+                            WeakState validWeakState;
+                            if (this.weakState.empty || (this.weakState.signatures.size() < quorumSize && this.prevWeakState.empty)) {
+                                balanceCommand = "error_weak";
+                                throw new Exception("Weakly consistent read - The weak state hasn't been updated yet.");
+                            }
+                            else if (this.weakState.signatures.size() < quorumSize && !this.prevWeakState.empty)
+                                validWeakState = this.prevWeakState;
+                            else
+                                validWeakState = this.weakState;
+                            if (!validWeakState.state.containsKey(keyClient)) {
+                                balanceCommand = "error_weak";
+                                throw new Exception("Weakly consistent read - Your account may not exist or may not have been commited to the blockchain yet.");
+                            }
+                            JSONObject jsonObject = new JSONObject();
+                            jsonObject.put("weakState", this.weakStateToJsonObj(validWeakState.state).toString());
+                            jsonObject.put("signatures", this.weakSignaturesToJsonObj(validWeakState.signatures));
+                            jsonObject.put("sigNum", validWeakState.signatures.size());
+                            message = jsonObject.toString();
+                            balanceCommand = "weak_balance";
+                        }
                     }
                     try {
-                        sendMessage(message, digSignature, receivedHostname, receivedPort,
-                                balanceCommand);
+                        sendMessage(message, digSignature, receivedHostname, receivedPort, balanceCommand);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                } catch (Exception except) {
-                    String inputValue = "There was an error when checking the balance. Please check if your account " +
-                            "exists.";
-                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort);
-
+                } catch (Exception e) {
+                    String inputValue = "There was an error when checking the balance: " + e.getMessage();
+                    sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort, balanceCommand);
                 }
                 break;
             }
@@ -378,14 +410,16 @@ public class Service extends Thread {
                 synchronized (this.weakState) {
                     try {
                         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                        if (digest.digest(this.weakStateToJsonObj().toString().getBytes()).toString().equals(apl.unsign(signature, key, hostPort))) {
-                            this.weakSignatures.put(new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort), new AbstractMap.SimpleEntry<>(key, signature));
+                        if (Arrays.toString(digest.digest(this.weakStateToJsonObj(this.weakState.state).toString().getBytes())).equals(Arrays.toString(apl.unsign(signature, key, hostPort)))) {
+                            this.weakState.signatures.put(new AbstractMap.SimpleEntry<>(receivedHostname, receivedPort), new AbstractMap.SimpleEntry<>(key, signature));
                         }
+                        else System.out.println("Signature not valid.");
                     }
                     catch(Exception e) {
                         e.printStackTrace();
                     }
                 }
+                System.out.println("Weak signatures collected: " + weakState.signatures.size());
                 break;
             }
             //Consensus

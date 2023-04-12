@@ -96,7 +96,7 @@ public class Block {
 
     public HashMap<String, Integer> getAccountsBalance(){
         HashMap<String, Integer> accountsBalance = new HashMap<>();
-        for(int i = this.maxTransactions; i >= 0 ; --i) {
+        for(int i = this.maxTransactions - 1; i >= 0 ; i--) {
             if(!accountsBalance.containsKey(transactionGroup[i].publicKey)) accountsBalance.put(transactionGroup[i].publicKey, transactionGroup[i].currBalance);
             if(TransferDTO.class.isAssignableFrom(transactionGroup[i].getClass())) {
                 TransferDTO transfer = (TransferDTO) transactionGroup[i];

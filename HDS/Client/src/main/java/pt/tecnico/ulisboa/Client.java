@@ -57,7 +57,7 @@ public class Client extends Thread{
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("command", "check_balance");
         jsonObject.put("inputValue", "weak");
-        this.apl.send("check_balance" + "weak", jsonObject.toString(), randomServer.getKey(),
+        this.apl.send("weak" + "check_balance", jsonObject.toString(), randomServer.getKey(),
                 randomServer.getValue());
     }
 
@@ -180,6 +180,9 @@ public class Client extends Thread{
         String messageID = jsonObject.getString("mac");
         String command = jsonObject.getString("command");
         if (command.equals("ack")) acksReceived.put(messageID, jsonObject);
+        else if (jsonObject.getString("command").equals("error_weak")) {
+            System.out.println("There was an error with the request: " + jsonObject.getString("inputValue"));
+        }
         else if (jsonObject.getString("command").equals("error")) {
             String inputValue = jsonObject.getString("inputValue");
             String digSignature = jsonObject.getString("digSignature");
@@ -204,13 +207,14 @@ public class Client extends Thread{
             JSONObject signatures = weakCheck.getJSONObject("signatures");
             int sigRemaining = weakCheck.getInt("sigNum");
             int quorumSize = 2 * this.byzantineProcesses + 1;
-            if (sigRemaining < quorumSize) System.out.println("Contacted server does not have enough signatures to provide a weakly consistent read yet.");
+            if (sigRemaining < quorumSize) System.out.println("Contacted server does not have enough signatures to " +
+                    "provide a weakly consistent read yet.");
             Iterator<String> hostPorts = signatures.keys();
             while (hostPorts.hasNext()) {
                 String hostPort = hostPorts.next();
                 JSONObject signature = signatures.getJSONObject(hostPort);
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                if (!digest.digest(weakState.getBytes()).toString().equals(apl.unsign(signature.getString("signature"), signature.getString("key"), hostPort))) {
+                if (!Arrays.toString(digest.digest(weakState.getBytes())).equals(Arrays.toString(apl.unsign(signature.getString("signature"), signature.getString("key"), hostPort)))) {
                     break;
                 }
                 sigRemaining--;
@@ -222,10 +226,12 @@ public class Client extends Thread{
                         " request was answered by a byzantine server. The address of the server is "+ receivedHostname +
                         " and the port is: " + receivedPort);
             }
-            JSONObject weakStateJson = new JSONObject(weakState);
-            int balance = weakStateJson.getInt(Base64.getEncoder().encodeToString(apl.getPublicKey().getEncoded()));
-            System.out.println("Your weak balance, verified with "+ jsonObject.getInt("sigNum")
-                    + " signatures from servers, is : " + balance);
+            else {
+                JSONObject weakStateJson = new JSONObject(weakState);
+                int balance = weakStateJson.getInt(Base64.getEncoder().encodeToString(apl.getPublicKey().getEncoded()));
+                System.out.println("Your weak balance, verified with " + weakCheck.getInt("sigNum")
+                        + " signatures from servers, is : " + balance);
+            }
         }
         else if (command.equals("decide")) {
             String inputValue = jsonObject.getString("inputValue");
