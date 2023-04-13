@@ -183,7 +183,7 @@ public class Service extends Thread {
                         this.weakState.empty = false;
                         this.weakState.state.clear();
                         this.weakState.signatures.clear();
-                        Block[] blocks = this.blockchain.getLastBlocks(3);
+                        Block[] blocks = this.blockchain.getLastBlocks(this.weakInterval);
                         for (Block block : blocks) {
                             if (block == null) continue;
                             HashMap<String, Integer> accountsBalance = block.getAccountsBalance();
@@ -198,12 +198,11 @@ public class Service extends Thread {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put("command", "weak_signature");
                     jsonObject.put("inputValue", signature);
-                    TimeUnit.SECONDS.sleep(1);
+                    TimeUnit.SECONDS.sleep(3);
                     this.broadcast.doBroadcast(signature + "weak_signature", jsonObject.toString());
                 }
             }
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -387,11 +386,11 @@ public class Service extends Thread {
                             int quorumSize = 2 * this.byzantineProcesses + 1;
                             WeakState validWeakState;
                             if (this.weakState.empty || (this.weakState.signatures.size() < quorumSize &&
-                                    this.prevWeakState.empty)) {
+                                    this.prevWeakState.empty && !byzantine)) {
                                 balanceCommand = "error_weak";
                                 throw new Exception("Weakly consistent read - The weak state hasn't been updated yet.");
                             }
-                            else if (this.weakState.signatures.size() < quorumSize)
+                            else if (this.weakState.signatures.size() < quorumSize && !byzantine)
                                 validWeakState = this.prevWeakState;
                             else
                                 validWeakState = this.weakState;
@@ -413,10 +412,7 @@ public class Service extends Thread {
                         throw new RuntimeException(e);
                     }
                 } catch (Exception e) {
-                    String inputValue;
-                    if(byzantine) inputValue = "There was an error when checking the balance: You connected to a " +
-                            "byzantine server (couldn't gather the necessary signatures).";
-                    else inputValue = "There was an error when checking the balance: " + e.getMessage();
+                    String inputValue = "There was an error when checking the balance: " + e.getMessage();
                     sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort, balanceCommand);
                 }
                 break;

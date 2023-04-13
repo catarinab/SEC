@@ -38,7 +38,7 @@ public class Block {
         }
     }
 
-    public JSONObject toJsonObj() {
+    public synchronized JSONObject toJsonObj() {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("previousHash", this.previousHash);
         jsonObject.put("transactions", this.transactions);
@@ -49,7 +49,7 @@ public class Block {
         return jsonObject;
     }
 
-    public void byzantine(){
+    public synchronized void byzantine(){
         for(int i = 0; i < this.transactions; i++){
             this.transactionGroup[i].multiplyCurrBalance(1000);
         }
@@ -61,11 +61,11 @@ public class Block {
         return (this.transactions < this.maxTransactions);
     }
 
-    public OperationDTO[] getTransactionGroup() {
+    public synchronized OperationDTO[] getTransactionGroup() {
         return transactionGroup;
     }
 
-    public void calculateHash() {
+    public synchronized void calculateHash() {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             String stringToHash = previousHash + Arrays.toString(transactionGroup);
@@ -76,7 +76,7 @@ public class Block {
         }
     }
 
-    public int check_balance(String publicKey){
+    public synchronized int check_balance(String publicKey){
         int balance = -1;
         for (int i = transactionGroup.length - 1; i >= 0 && balance == -1; i--) {
             balance = transactionGroup[i].check_balance(publicKey);
@@ -84,7 +84,7 @@ public class Block {
         return balance;
     }
 
-    public String getData(){
+    public synchronized String getData(){
         StringBuilder retVal = new StringBuilder();
         for(int i = 0; i < this.transactions; i++) {
             if (i > 0) retVal.append("\t");
@@ -94,7 +94,7 @@ public class Block {
         return retVal.toString();
     }
 
-    public HashMap<String, Integer> getAccountsBalance(){
+    public synchronized HashMap<String, Integer> getAccountsBalance(){
         HashMap<String, Integer> accountsBalance = new HashMap<>();
         for(int i = this.maxTransactions - 1; i >= 0 ; i--) {
             if(!accountsBalance.containsKey(transactionGroup[i].publicKey)) accountsBalance.put(transactionGroup[i].publicKey, transactionGroup[i].currBalance);
@@ -106,7 +106,7 @@ public class Block {
         return accountsBalance;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         calculateHash();
         this.previousHash = this.hash;
         this.hash = "";
@@ -115,7 +115,7 @@ public class Block {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public synchronized boolean equals(Object obj) {
         if (obj == null || obj.getClass() != this.getClass()) return false;
 
         final Block block = (Block) obj;

@@ -47,11 +47,10 @@ public class ServiceTest {
         secondClient = new Client("localhost", 4322, processesFourServers, byzantineProcessesFourServers);
     }
 
-    /*@Test
+    @Test
     @DisplayName("Testing: four correct members and two clients sending request to create account and transfer from one to another")
     public void fourServersNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
-
         ServiceAux server1 = null;
         ServiceAux server2 = null;
         ServiceAux server3 = null;
@@ -75,10 +74,10 @@ public class ServiceTest {
         client.send("create_account", "");
         secondClient.send("create_account", "");
 
-        Thread.sleep(2000);
+        Thread.sleep(1000);
 
-        String keyClient1 = server1.getPublicKey(2);
-        String keyClient2 = server1.getPublicKey(1);
+        String keyClient1 = client.getPublicKey();
+        String keyClient2 = secondClient.getPublicKey();
 
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
@@ -89,7 +88,7 @@ public class ServiceTest {
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
 
-        Thread.sleep(10000);
+        Thread.sleep(20000);
 
         String predictedValue = "Blockchain: \n" +
                 "Block 0:0 -> source: Create Account: " + keyClient1 + ", new balance: 20\n" +
@@ -103,7 +102,6 @@ public class ServiceTest {
                 "\t8 -> source: Transfer from account: " + keyClient1 + " with previous balance 17 and new balance 15, to destination account " + keyClient2 + " with previous balance 17 and new balance 18, with the value: 1, and the fee: 1\n" +
                 "\t9 -> source: Transfer from account: " + keyClient2 + " with previous balance 18 and new balance 16, to destination account " + keyClient1 + " with previous balance 15 and new balance 16, with the value: 1, and the fee: 1";
 
-
         assertTrue(server1.predictedBlockchain(predictedValue));
         assertTrue(server2.predictedBlockchain(predictedValue));
         assertTrue(server3.predictedBlockchain(predictedValue));
@@ -116,7 +114,7 @@ public class ServiceTest {
         server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-    }*/
+    }
 
     @Test
     @DisplayName("Testing: four correct members and two clients sending request to weak strong balance after transfers")
@@ -148,35 +146,31 @@ public class ServiceTest {
 
         Thread.sleep(1000);
 
-        String keyClient1 = server1.getPublicKey(2);
-        String keyClient2 = server1.getPublicKey(1);
+        String keyClient1 = client.getPublicKey();
+        String keyClient2 = secondClient.getPublicKey();
 
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
-        Thread.sleep(1000);
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
-        Thread.sleep(1000);
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
-        Thread.sleep(1000);
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
 
-        Thread.sleep(10000);
+        Thread.sleep(20000);
 
         String correctBalance = "16";
 
         client.send("check_balance", "strong");
         secondClient.send("check_balance", "strong");
 
-
         Thread.sleep(5000);
 
-        System.out.println("DEBUG:" + client.getStrongBalanceRequest());
+        System.out.println(("DEBUGGGGGGGGG: " + secondClient.getStrongBalanceReply()));
 
-        assertTrue(client.getStrongBalanceRequest().equals(correctBalance));
-        assertTrue(secondClient.getStrongBalanceRequest().equals(correctBalance));
+        assertTrue(client.getStrongBalanceReply().equals(correctBalance));
+        assertTrue(secondClient.getStrongBalanceReply().equals(correctBalance));
 
         thread.interrupt();
         thread2.interrupt();
@@ -187,9 +181,9 @@ public class ServiceTest {
         server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
     }
 
-    /*@Test
+    @Test
     @DisplayName("Testing: four correct members and two clients sending request to check weak balance after transfers")
-    public void strongBalanceNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
+    public void weakBalanceNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
 
         ServiceAux server1 = null;
@@ -211,13 +205,14 @@ public class ServiceTest {
         thread.start();
         Client thread2 = new Client(secondClient);
         thread2.start();
+
         client.send("create_account", "");
         secondClient.send("create_account", "");
 
-        Thread.sleep(100);
+        Thread.sleep(1000);
 
-        String keyClient1 = server1.getPublicKey(2);
-        String keyClient2 = server1.getPublicKey(1);
+        String keyClient1 = client.getPublicKey();
+        String keyClient2 = secondClient.getPublicKey();
 
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
@@ -228,7 +223,7 @@ public class ServiceTest {
         client.send("transfer", "1;"+keyClient2);
         secondClient.send("transfer", "1;"+keyClient1);
 
-        Thread.sleep(30000);
+        Thread.sleep(20000);
 
         ArrayList<String> possibleWeakReads = new ArrayList<>();
         possibleWeakReads.add("20");
@@ -243,7 +238,7 @@ public class ServiceTest {
 
         Thread.sleep(10000);
 
-        assertTrue(possibleWeakReads.contains(client.getWeakBalance()));
+        assertTrue(possibleWeakReads.contains(client.getWeakBalanceReply()));
 
         thread.interrupt();
         thread2.interrupt();
@@ -252,5 +247,5 @@ public class ServiceTest {
         server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-    }*/
+    }
 }

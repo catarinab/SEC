@@ -11,19 +11,19 @@ public class Account {
         this.balance = 20;
     }
 
-    public int check_balance(){
+    public synchronized int check_balance(){
         return this.balance;
     }
 
-    public void removeBalance(int removeBalance){
+    public synchronized void removeBalance(int removeBalance){
         this.balance -= removeBalance;
     }
 
-    public void addBalance(int addedBalance){
+    public synchronized void addBalance(int addedBalance){
         this.balance += addedBalance;
     }
 
-    public String getPublicKey(){
+    public synchronized String getPublicKey(){
         return this.publicKey.toString();
     }
 

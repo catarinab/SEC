@@ -25,9 +25,8 @@ public class Client extends Thread{
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
     private final Object quorumLock = new Object();
     //for test purposes
-    private String strongBalanceRequest = "-1";
-    private String weakBalance = "-1";
-    private String sigWeakBalanceResponse = null;
+    private String strongBalanceReply;
+    private String weakBalanceReply;
 
     public Client(String hostname, int port, List<Entry<String,Integer>> processes, int byzantineProcesses) throws IOException,
             NoSuchAlgorithmException {
@@ -50,14 +49,24 @@ public class Client extends Thread{
         this.apl = client.apl;
         this.broadcast = client.broadcast;
         this.acksReceived = client.acksReceived;
-
+        this.strongBalanceReply = client.strongBalanceReply;
+        this.weakBalanceReply = client.weakBalanceReply;
     }
 
-    public String getStrongBalanceRequest() { return this.strongBalanceRequest; }
+    public String getStrongBalanceReply() { return strongBalanceReply; }
 
-    public String getWeakBalance() { return this.weakBalance; }
+    public String getWeakBalanceReply() { return this.weakBalanceReply; }
 
-    public String getSigWeakBalanceResponse() { return this.sigWeakBalanceResponse; }
+    public String getPublicKey() {
+
+        String publicKeyString = Base64.getEncoder().encodeToString(this.apl.getPublicKey().getEncoded());
+        return publicKeyString;
+    }
+
+    public void setStrongBalanceReply(String inputValue) {
+        System.out.println("Setting strong balance reply to " + inputValue);
+        this.strongBalanceReply = inputValue;
+    }
 
     public void requestWeakRead() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
@@ -207,8 +216,7 @@ public class Client extends Thread{
             String receivedHostname = jsonObject.getString("hostname");
             int receivedPort = jsonObject.getInt("port");
             if (this.quorumReplies(inputValue, digSignature, receivedHostname, receivedPort)) {
-                this.strongBalanceRequest = inputValue;
-                System.out.println("DEBUG : " + strongBalanceRequest);
+                this.setStrongBalanceReply(inputValue);
                 System.out.println("Your Strong balance is : " + inputValue);
             }
         }
@@ -218,12 +226,11 @@ public class Client extends Thread{
             JSONObject signatures = weakCheck.getJSONObject("signatures");
             int sigRemaining = weakCheck.getInt("sigNum");
             int quorumSize = 2 * this.byzantineProcesses + 1;
-            if (sigRemaining < quorumSize) {
-                System.out.println("Contacted server does not have enough signatures to " +
-                        "provide a weakly consistent read yet.");
-            }
+            boolean byzantine = false;
+            if (sigRemaining < quorumSize) byzantine = true;
             Iterator<String> hostPorts = signatures.keys();
             while (hostPorts.hasNext()) {
+                if (byzantine) break;
                 String hostPort = hostPorts.next();
                 JSONObject signature = signatures.getJSONObject(hostPort);
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -232,7 +239,7 @@ public class Client extends Thread{
                 }
                 sigRemaining--;
             }
-            if (sigRemaining > 0) {
+            if (sigRemaining > 0 || byzantine) {
                 String receivedHostname = jsonObject.getString("hostname");
                 int receivedPort = jsonObject.getInt("port");
                 System.out.println("There was an error with your request for your weak balance. It is possible that the" +
@@ -242,8 +249,7 @@ public class Client extends Thread{
             else {
                 JSONObject weakStateJson = new JSONObject(weakState);
                 int balance = weakStateJson.getInt(Base64.getEncoder().encodeToString(apl.getPublicKey().getEncoded()));
-                this.weakBalance = Integer.toString(balance);
-                this.sigWeakBalanceResponse = Integer.toString(weakCheck.getInt("sigNum"));
+                this.weakBalanceReply = Integer.toString(balance);
                 System.out.println("Your weak balance, verified with " + weakCheck.getInt("sigNum")
                         + " signatures from servers, is : " + balance);
             }

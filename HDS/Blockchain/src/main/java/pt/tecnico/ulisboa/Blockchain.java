@@ -12,7 +12,8 @@ public class Blockchain {
         this.maxTransactions = maxTransactions;
     }
 
-    public void addValue(Block block) { this.chain.add(block);
+    public synchronized void addValue(Block block) {
+        this.chain.add(block);
     }
 
     public synchronized String getBlockchainIndex(int index) {
