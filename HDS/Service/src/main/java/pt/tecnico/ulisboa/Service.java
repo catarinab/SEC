@@ -386,11 +386,12 @@ public class Service extends Thread {
                         synchronized (this.weakState) {
                             int quorumSize = 2 * this.byzantineProcesses + 1;
                             WeakState validWeakState;
-                            if (this.weakState.empty || (this.weakState.signatures.size() < quorumSize && this.prevWeakState.empty)) {
+                            if (this.weakState.empty || (this.weakState.signatures.size() < quorumSize &&
+                                    this.prevWeakState.empty)) {
                                 balanceCommand = "error_weak";
                                 throw new Exception("Weakly consistent read - The weak state hasn't been updated yet.");
                             }
-                            else if (this.weakState.signatures.size() < quorumSize && !this.prevWeakState.empty)
+                            else if (this.weakState.signatures.size() < quorumSize)
                                 validWeakState = this.prevWeakState;
                             else
                                 validWeakState = this.weakState;
@@ -412,7 +413,10 @@ public class Service extends Thread {
                         throw new RuntimeException(e);
                     }
                 } catch (Exception e) {
-                    String inputValue = "There was an error when checking the balance: " + e.getMessage();
+                    String inputValue;
+                    if(byzantine) inputValue = "There was an error when checking the balance: You connected to a " +
+                            "byzantine server (couldn't gather the necessary signatures).";
+                    else inputValue = "There was an error when checking the balance: " + e.getMessage();
                     sendErrorMessage(inputValue, digSignature, receivedHostname, receivedPort, balanceCommand);
                 }
                 break;
