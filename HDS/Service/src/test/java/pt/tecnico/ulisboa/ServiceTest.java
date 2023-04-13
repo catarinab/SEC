@@ -28,187 +28,28 @@ public class ServiceTest {
     int byzantineProcessesFourServers;
     List<Map.Entry<String,Integer>> processesFourServers;
     Map.Entry<String,Integer> leaderFourServers;
-    int byzantineProcessesSevenServers;
-    List<Map.Entry<String,Integer>> processesSevenServers;
-    Map.Entry<String,Integer> leaderSevenServers;
-    Client clientFourServers;
-    Client clientSevenServers;
-    Client secondClientFourServers;
+    Client client;
+    Client secondClient;
 
     @BeforeAll
     public void init() throws IOException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeyException{
         System.out.println("Running tests... might take a while");
-        System.setOut(new PrintStream(new ByteArrayOutputStream()));
+        //System.setOut(new PrintStream(new ByteArrayOutputStream()));
 
         Entry<Integer, List<Entry<String,Integer>>> fileSetupFourServers = Utility.readProcesses("../TestConfig/services_test1.txt");
         byzantineProcessesFourServers = fileSetupFourServers.getKey();
         processesFourServers = fileSetupFourServers.getValue();
         leaderFourServers = processesFourServers.get(0);
 
-
-        Entry<Integer, List<Entry<String,Integer>>> fileSetupSevenServers = Utility.readProcesses("../TestConfig/services_test2.txt");
-        byzantineProcessesSevenServers = fileSetupSevenServers.getKey();
-        processesSevenServers = fileSetupSevenServers.getValue();
-        leaderSevenServers = processesSevenServers.get(0);
-
-        clientFourServers = new Client("localhost", 4321, processesFourServers, byzantineProcessesFourServers);
-        clientSevenServers = new Client("localhost", 4322, processesSevenServers, byzantineProcessesSevenServers);
-        secondClientFourServers = new Client("localhost", 4323, processesFourServers, byzantineProcessesFourServers);
+        client = new Client("localhost", 4321, processesFourServers, byzantineProcessesFourServers);
+        secondClient = new Client("localhost", 4322, processesFourServers, byzantineProcessesFourServers);
     }
 
-
-    @Test
-    @DisplayName("Testing: four correct members and a client sending one message")
-    public void noByzantineServers() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
-            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
-        ServiceAux server1 = null;
-        ServiceAux server2 = null;
-        ServiceAux server3 = null;
-        ServiceAux server4 = null;
-
-        //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
-        server1.start();
-        server2 = new ServiceAux("localhost", 1235, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server4.start();
-
-        Client thread = new Client(clientFourServers);
-        thread.start();
-        String valueToAppend = "ola!";
-        clientFourServers.send("append", valueToAppend);
-
-        Thread.sleep(10000);
-
-        assertEquals(valueToAppend, server1.getBlockchainIndex(0));
-        assertTrue(server1.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server2.getBlockchainIndex(0));
-        assertTrue(server2.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server3.getBlockchainIndex(0));
-        assertTrue(server3.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server4.getBlockchainIndex(0));
-        assertTrue(server4.isInBlockchain(valueToAppend));
-
-        thread.interrupt();
-
-        server1.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-
-    }
-
-    @Test
-    @DisplayName("Testing: three correct members, one byzantine member and a client sending one message")
-    public void oneByzantineServers() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
-            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
-
-        ServiceAux server1 = null;
-        ServiceAux server2 = null;
-        ServiceAux server3 = null;
-        ServiceAux server4 = null;
-
-        //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
-        server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server4.start();
-
-        Client thread = new Client(clientFourServers);
-        thread.start();
-        String valueToAppend = "ola!";
-        clientFourServers.send("append", valueToAppend);
-
-        Thread.sleep(10000);
-
-        assertEquals(valueToAppend, server1.getBlockchainIndex(0));
-        assertTrue(server1.isInBlockchain(valueToAppend));
-        assertFalse(server2.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server3.getBlockchainIndex(0));
-        assertTrue(server3.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server4.getBlockchainIndex(0));
-        assertTrue(server4.isInBlockchain(valueToAppend));
-
-        thread.interrupt();
-
-        server1.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-    }
-
-   @Test
-    @DisplayName("Testing: five correct members, two byzantine members and a client sending one message")
-    public void twoByzantineServers() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
-            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
-
-        ServiceAux server1 = null;
-        ServiceAux server2 = null;
-        ServiceAux server3 = null;
-        ServiceAux server4 = null;
-        ServiceAux server5 = null;
-        ServiceAux server6 = null;
-        ServiceAux server7 = null;
-
-        //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesSevenServers, processesSevenServers, true, leaderSevenServers);
-        server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
-        server2.start();
-        server3 = new ServiceAux("localhost", 1236, true, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
-        server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
-        server4.start();
-        server5 = new ServiceAux("localhost", 1238, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
-        server5.start();
-        server6 = new ServiceAux("localhost", 1239, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
-        server6.start();
-        server7 = new ServiceAux("localhost", 4446, false, byzantineProcessesSevenServers, processesSevenServers, false, leaderSevenServers);
-        server7.start();
-
-        Client thread = new Client(clientSevenServers);
-        thread.start();
-        String valueToAppend = "ola!";
-        clientSevenServers.send("append", valueToAppend);
-
-        Thread.sleep(17000);
-
-        assertEquals(valueToAppend, server1.getBlockchainIndex(0));
-        assertTrue(server1.isInBlockchain(valueToAppend));
-        assertFalse(server2.isInBlockchain(valueToAppend));
-        assertFalse(server3.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server4.getBlockchainIndex(0));
-        assertTrue(server4.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server5.getBlockchainIndex(0));
-        assertTrue(server5.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server6.getBlockchainIndex(0));
-        assertTrue(server6.isInBlockchain(valueToAppend));
-        assertEquals(valueToAppend, server7.getBlockchainIndex(0));
-        assertTrue(server7.isInBlockchain(valueToAppend));
-
-        thread.interrupt();
-
-        server1.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server5.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server6.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server7.getServer().getApl().getStubbornLink().getFll().getDs().close();
-    }
-
-    @Test
-    @DisplayName("Testing: four correct members and a client sending two messages, one after another")
-    public void twoMessageFourServersNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
+    /*@Test
+    @DisplayName("Testing: four correct members and two clients sending request to create account and transfer from one to another")
+    public void fourServersNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
 
         ServiceAux server1 = null;
@@ -226,134 +67,116 @@ public class ServiceTest {
         server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
-        Client thread = new Client(clientFourServers);
+        Client thread = new Client(client);
         thread.start();
-        String valueToAppend1 = "ola!";
-        String valueToAppend2 = "adeus!";
-        clientFourServers.send("append", valueToAppend1);
-        clientFourServers.send("append", valueToAppend2);
-
-        Thread.sleep(10000);
-
-        assertEquals(valueToAppend1, server1.getBlockchainIndex(0));
-        assertTrue(server1.isInBlockchain(valueToAppend1));
-        assertEquals(valueToAppend1, server2.getBlockchainIndex(0));
-        assertTrue(server2.isInBlockchain(valueToAppend1));
-        assertEquals(valueToAppend1, server3.getBlockchainIndex(0));
-        assertTrue(server3.isInBlockchain(valueToAppend1));
-        assertEquals(valueToAppend1, server4.getBlockchainIndex(0));
-        assertTrue(server4.isInBlockchain(valueToAppend1));
-
-        assertEquals(valueToAppend2, server1.getBlockchainIndex(1));
-        assertTrue(server1.isInBlockchain(valueToAppend2));
-        assertEquals(valueToAppend2, server2.getBlockchainIndex(1));
-        assertTrue(server2.isInBlockchain(valueToAppend2));
-        assertEquals(valueToAppend2, server3.getBlockchainIndex(1));
-        assertTrue(server3.isInBlockchain(valueToAppend2));
-        assertEquals(valueToAppend2, server4.getBlockchainIndex(1));
-        assertTrue(server4.isInBlockchain(valueToAppend2));
-
-        thread.interrupt();
-
-        server1.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-    }
-
-    @Test
-    @DisplayName("Testing: three correct members, one byzantine member and a client sending two messages, one after another")
-    public void twoMessageFourServersOneByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
-            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
-
-        ServiceAux server1 = null;
-        ServiceAux server2 = null;
-        ServiceAux server3 = null;
-        ServiceAux server4 = null;
-
-        //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
-        server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server4.start();
-
-        Client thread = new Client(clientFourServers);
-        thread.start();
-        String valueToAppend1 = "ola!";
-        String valueToAppend2 = "adeus!";
-        clientFourServers.send("append", valueToAppend1);
-        clientFourServers.send("append", valueToAppend2);
-
-        Thread.sleep(10000);
-
-        assertEquals(valueToAppend1, server1.getBlockchainIndex(0));
-        assertTrue(server1.isInBlockchain(valueToAppend1));
-        assertFalse(server2.isInBlockchain(valueToAppend1));
-        assertEquals(valueToAppend1, server3.getBlockchainIndex(0));
-        assertTrue(server3.isInBlockchain(valueToAppend1));
-        assertEquals(valueToAppend1, server4.getBlockchainIndex(0));
-        assertTrue(server4.isInBlockchain(valueToAppend1));
-
-        assertEquals(valueToAppend2, server1.getBlockchainIndex(1));
-        assertTrue(server1.isInBlockchain(valueToAppend2));
-        assertFalse(server2.isInBlockchain(valueToAppend2));
-        assertEquals(valueToAppend2, server3.getBlockchainIndex(1));
-        assertTrue(server3.isInBlockchain(valueToAppend2));
-        assertEquals(valueToAppend2, server4.getBlockchainIndex(1));
-        assertTrue(server4.isInBlockchain(valueToAppend2));
-
-        thread.interrupt();
-
-        server1.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
-        server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-    }
-
-    @Test
-    @DisplayName("Testing: four correct members and two clients, each sending one message")
-    public void twoClientsFourServersNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
-            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
-
-        ServiceAux server1 = null;
-        ServiceAux server2 = null;
-        ServiceAux server3 = null;
-        ServiceAux server4 = null;
-
-        //initialize servers
-        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
-        server1.start();
-        server2 = new ServiceAux("localhost", 1235, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server2.start();
-        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server3.start();
-        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
-        server4.start();
-
-        Client thread = new Client(clientFourServers);
-        thread.start();
-        Client thread2 = new Client(secondClientFourServers);
+        Client thread2 = new Client(secondClient);
         thread2.start();
-        String valueToAppend1 = "ola!";
-        String valueToAppend2 = "adeus!";
-        clientFourServers.send("append", valueToAppend1);
-        secondClientFourServers.send("append", valueToAppend2);
+
+        client.send("create_account", "");
+        secondClient.send("create_account", "");
+
+        Thread.sleep(2000);
+
+        String keyClient1 = server1.getPublicKey(2);
+        String keyClient2 = server1.getPublicKey(1);
+
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
 
         Thread.sleep(10000);
 
-        assertTrue(server1.isInBlockchain(valueToAppend1));
-        assertTrue(server2.isInBlockchain(valueToAppend1));
-        assertTrue(server3.isInBlockchain(valueToAppend1));
-        assertTrue(server4.isInBlockchain(valueToAppend1));
+        String predictedValue = "Blockchain: \n" +
+                "Block 0:0 -> source: Create Account: " + keyClient1 + ", new balance: 20\n" +
+                "\t1 -> source: Create Account: " + keyClient2 + ", new balance: 20\n" +
+                "\t2 -> source: Transfer from account: " + keyClient1 + " with previous balance 20 and new balance 18, to destination account " + keyClient2 + " with previous balance 20 and new balance 21, with the value: 1, and the fee: 1\n" +
+                "\t3 -> source: Transfer from account: " + keyClient2 + " with previous balance 21 and new balance 19, to destination account " + keyClient1 + " with previous balance 18 and new balance 19, with the value: 1, and the fee: 1\n" +
+                "\t4 -> source: Transfer from account: " + keyClient1 + " with previous balance 19 and new balance 17, to destination account " + keyClient2 + " with previous balance 19 and new balance 20, with the value: 1, and the fee: 1\n" +
+                "\t5 -> source: Transfer from account: " + keyClient2 + " with previous balance 20 and new balance 18, to destination account " + keyClient1 + " with previous balance 17 and new balance 18, with the value: 1, and the fee: 1\n" +
+                "\t6 -> source: Transfer from account: " + keyClient1 + " with previous balance 18 and new balance 16, to destination account " + keyClient2 + " with previous balance 18 and new balance 19, with the value: 1, and the fee: 1\n" +
+                "\t7 -> source: Transfer from account: " + keyClient2 + " with previous balance 19 and new balance 17, to destination account " + keyClient1 + " with previous balance 16 and new balance 17, with the value: 1, and the fee: 1\n" +
+                "\t8 -> source: Transfer from account: " + keyClient1 + " with previous balance 17 and new balance 15, to destination account " + keyClient2 + " with previous balance 17 and new balance 18, with the value: 1, and the fee: 1\n" +
+                "\t9 -> source: Transfer from account: " + keyClient2 + " with previous balance 18 and new balance 16, to destination account " + keyClient1 + " with previous balance 15 and new balance 16, with the value: 1, and the fee: 1";
 
-        assertTrue(server1.isInBlockchain(valueToAppend2));
-        assertTrue(server2.isInBlockchain(valueToAppend2));
-        assertTrue(server3.isInBlockchain(valueToAppend2));
-        assertTrue(server4.isInBlockchain(valueToAppend2));
+
+        assertTrue(server1.predictedBlockchain(predictedValue));
+        assertTrue(server2.predictedBlockchain(predictedValue));
+        assertTrue(server3.predictedBlockchain(predictedValue));
+        assertTrue(server4.predictedBlockchain(predictedValue));
+
+        thread.interrupt();
+        thread2.interrupt();
+
+        server1.getServer().getApl().getStubbornLink().getFll().getDs().close();
+        server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
+        server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
+        server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
+    }*/
+
+    @Test
+    @DisplayName("Testing: four correct members and two clients sending request to weak strong balance after transfers")
+    public void strongBalanceNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
+            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
+
+        ServiceAux server1 = null;
+        ServiceAux server2 = null;
+        ServiceAux server3 = null;
+        ServiceAux server4 = null;
+
+        //initialize servers
+        server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
+        server1.start();
+        server2 = new ServiceAux("localhost", 1235, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
+        server2.start();
+        server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
+        server3.start();
+        server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
+        server4.start();
+
+        Client thread = new Client(client);
+        thread.start();
+        Client thread2 = new Client(secondClient);
+        thread2.start();
+
+        client.send("create_account", "");
+        secondClient.send("create_account", "");
+
+        Thread.sleep(1000);
+
+        String keyClient1 = server1.getPublicKey(2);
+        String keyClient2 = server1.getPublicKey(1);
+
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        Thread.sleep(1000);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        Thread.sleep(1000);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        Thread.sleep(1000);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+
+        Thread.sleep(10000);
+
+        String correctBalance = "16";
+
+        client.send("check_balance", "strong");
+        secondClient.send("check_balance", "strong");
+
+
+        Thread.sleep(5000);
+
+        System.out.println("DEBUG:" + client.getStrongBalanceRequest());
+
+        assertTrue(client.getStrongBalanceRequest().equals(correctBalance));
+        assertTrue(secondClient.getStrongBalanceRequest().equals(correctBalance));
 
         thread.interrupt();
         thread2.interrupt();
@@ -364,9 +187,9 @@ public class ServiceTest {
         server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
     }
 
-    @Test
-    @DisplayName("Testing: three correct members, one byzantine member and two clients, each sending one message")
-    public void twoClientsFourServersOneByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
+    /*@Test
+    @DisplayName("Testing: four correct members and two clients sending request to check weak balance after transfers")
+    public void strongBalanceNoByzantine() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
 
         ServiceAux server1 = null;
@@ -377,33 +200,50 @@ public class ServiceTest {
         //initialize servers
         server1 = new ServiceAux("localhost", 1234, false, byzantineProcessesFourServers, processesFourServers, true, leaderFourServers);
         server1.start();
-        server2 = new ServiceAux("localhost", 1235, true, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
+        server2 = new ServiceAux("localhost", 1235, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server2.start();
         server3 = new ServiceAux("localhost", 1236, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server3.start();
         server4 = new ServiceAux("localhost", 1237, false, byzantineProcessesFourServers, processesFourServers, false, leaderFourServers);
         server4.start();
 
-        Client thread = new Client(clientFourServers);
+        Client thread = new Client(client);
         thread.start();
-        Client thread2 = new Client(secondClientFourServers);
+        Client thread2 = new Client(secondClient);
         thread2.start();
-        String valueToAppend1 = "ola!";
-        String valueToAppend2 = "adeus!";
-        clientFourServers.send("append", valueToAppend1);
-        secondClientFourServers.send("append", valueToAppend2);
+        client.send("create_account", "");
+        secondClient.send("create_account", "");
+
+        Thread.sleep(100);
+
+        String keyClient1 = server1.getPublicKey(2);
+        String keyClient2 = server1.getPublicKey(1);
+
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+        client.send("transfer", "1;"+keyClient2);
+        secondClient.send("transfer", "1;"+keyClient1);
+
+        Thread.sleep(30000);
+
+        ArrayList<String> possibleWeakReads = new ArrayList<>();
+        possibleWeakReads.add("20");
+        possibleWeakReads.add("18");
+        possibleWeakReads.add("21");
+        possibleWeakReads.add("19");
+        possibleWeakReads.add("17");
+        possibleWeakReads.add("16");
+        possibleWeakReads.add("15");
+
+        client.requestWeakRead();
 
         Thread.sleep(10000);
 
-        assertTrue(server1.isInBlockchain(valueToAppend1));
-        assertFalse(server2.isInBlockchain(valueToAppend1));
-        assertTrue(server3.isInBlockchain(valueToAppend1));
-        assertTrue(server4.isInBlockchain(valueToAppend1));
-
-        assertTrue(server1.isInBlockchain(valueToAppend2));
-        assertFalse(server2.isInBlockchain(valueToAppend2));
-        assertTrue(server3.isInBlockchain(valueToAppend2));
-        assertTrue(server4.isInBlockchain(valueToAppend2));
+        assertTrue(possibleWeakReads.contains(client.getWeakBalance()));
 
         thread.interrupt();
         thread2.interrupt();
@@ -412,5 +252,5 @@ public class ServiceTest {
         server2.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server3.getServer().getApl().getStubbornLink().getFll().getDs().close();
         server4.getServer().getApl().getStubbornLink().getFll().getDs().close();
-    }
+    }*/
 }

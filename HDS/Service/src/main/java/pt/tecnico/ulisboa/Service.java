@@ -21,7 +21,7 @@ public class Service extends Thread {
     private final Broadcast broadcast;
     private ArrayList<String> delivered = new ArrayList<>();
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
-    private Blockchain blockchain = new Blockchain(3);
+    private Blockchain blockchain = new Blockchain(10);
     private final int fee = 1;
     //current state of accounts
     private final ConcurrentHashMap<String, Account> accounts;
@@ -195,7 +195,6 @@ public class Service extends Thread {
                     signature = apl.sign(this.weakStateToJsonObj(this.weakState.state).toString());
                     System.out.println("Weak state: " + weakState.state.size());
                     weakState.state.forEach((k,v)-> System.out.println("\t" + k + ", " + v));
-                    
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put("command", "weak_signature");
                     jsonObject.put("inputValue", signature);
@@ -305,6 +304,21 @@ public class Service extends Thread {
 
     public List<String> getBlockchainData() {
         return this.blockchain.getBlockchainData();
+    }
+
+    public String getBlockchainPrint() {
+        return this.blockchain.printToStringBlockchain();
+    }
+
+    public String getPublicKey(int account) {
+        List<String> keys = new ArrayList<>(this.accounts.keySet());
+
+        if (keys.size() > 0) {
+            String publicKey = keys.get(account - 1);
+            return publicKey;
+        }
+
+        return null;
     }
 
     public void receive() throws IOException {

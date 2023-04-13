@@ -28,6 +28,12 @@ public class ServiceAux extends Thread{
         return this.server.isInBlockchain(data);
     }
 
+    public String getBlockchainPrint() {
+        return this.server.getBlockchainPrint();
+    }
+
+    public boolean predictedBlockchain(String predictedBlockchain) {return this.getBlockchainPrint().equals(predictedBlockchain);}
+
     public String getBlockchainIndex(int index) {
         return this.server.getBlockchainIndex(index);
     }
@@ -36,6 +42,7 @@ public class ServiceAux extends Thread{
         return this.server.getBlockchainData();
     }
 
+    public String getPublicKey(int account) { return this.server.getPublicKey(account); }
     public void run() {
         try {
             while(true){

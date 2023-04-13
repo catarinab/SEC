@@ -24,7 +24,10 @@ public class Client extends Thread{
     private final APL apl;
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
     private final Object quorumLock = new Object();
-
+    //for test purposes
+    private String strongBalanceRequest = "-1";
+    private String weakBalance = "-1";
+    private String sigWeakBalanceResponse = null;
 
     public Client(String hostname, int port, List<Entry<String,Integer>> processes, int byzantineProcesses) throws IOException,
             NoSuchAlgorithmException {
@@ -49,6 +52,12 @@ public class Client extends Thread{
         this.acksReceived = client.acksReceived;
 
     }
+
+    public String getStrongBalanceRequest() { return this.strongBalanceRequest; }
+
+    public String getWeakBalance() { return this.weakBalance; }
+
+    public String getSigWeakBalanceResponse() { return this.sigWeakBalanceResponse; }
 
     public void requestWeakRead() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
@@ -198,6 +207,8 @@ public class Client extends Thread{
             String receivedHostname = jsonObject.getString("hostname");
             int receivedPort = jsonObject.getInt("port");
             if (this.quorumReplies(inputValue, digSignature, receivedHostname, receivedPort)) {
+                this.strongBalanceRequest = inputValue;
+                System.out.println("DEBUG : " + strongBalanceRequest);
                 System.out.println("Your Strong balance is : " + inputValue);
             }
         }
@@ -207,8 +218,10 @@ public class Client extends Thread{
             JSONObject signatures = weakCheck.getJSONObject("signatures");
             int sigRemaining = weakCheck.getInt("sigNum");
             int quorumSize = 2 * this.byzantineProcesses + 1;
-            if (sigRemaining < quorumSize) System.out.println("Contacted server does not have enough signatures to " +
-                    "provide a weakly consistent read yet.");
+            if (sigRemaining < quorumSize) {
+                System.out.println("Contacted server does not have enough signatures to " +
+                        "provide a weakly consistent read yet.");
+            }
             Iterator<String> hostPorts = signatures.keys();
             while (hostPorts.hasNext()) {
                 String hostPort = hostPorts.next();
@@ -229,6 +242,8 @@ public class Client extends Thread{
             else {
                 JSONObject weakStateJson = new JSONObject(weakState);
                 int balance = weakStateJson.getInt(Base64.getEncoder().encodeToString(apl.getPublicKey().getEncoded()));
+                this.weakBalance = Integer.toString(balance);
+                this.sigWeakBalanceResponse = Integer.toString(weakCheck.getInt("sigNum"));
                 System.out.println("Your weak balance, verified with " + weakCheck.getInt("sigNum")
                         + " signatures from servers, is : " + balance);
             }

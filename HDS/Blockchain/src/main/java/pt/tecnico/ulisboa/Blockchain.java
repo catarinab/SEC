@@ -54,4 +54,13 @@ public class Blockchain {
             System.out.println("Block " + i++ + ":" + block.getData());
         }
     }
+
+    public synchronized String printToStringBlockchain() {
+        int i = 0;
+        String blockchainPrint = "Blockchain: \n";
+        for (Block block: this.chain) {
+            blockchainPrint += "Block " + i++ + ":" + block.getData();
+        }
+        return blockchainPrint;
+    }
 }
