@@ -18,13 +18,8 @@ case $key in
     shift
     shift
     ;;
-    -HostnameClient)
-    HostnameClient="$2"
-    shift
-    shift
-    ;;
-    -PortClient)
-    PortClient="$2"
+    -NClient)
+    NClient="$2"
     shift
     shift
     ;;
@@ -78,6 +73,15 @@ do
 done < "$System"
 
 # Create new terminal and run client program
-gnome-terminal --tab --title="Client" -- /bin/bash -c "cd Client/ && mvn exec:java -Dhostname=\"$HostnameClient\" -Dport=\"$PortClient\" -Dpath=\"$System\"; exec /bin/bash"
+counterClient=0
+while (( counterClient < NClient ))
+do
+    counterClient=$((counterClient+1))
 
-gnome-terminal --tab --title="Client" -- /bin/bash -c "cd Client/ && mvn exec:java -Dhostname=\"localhost\" -Dport=\"4322\" -Dpath=\"$System\"; exec /bin/bash"
+    # Prompt user for input
+    read -p "Enter hostname for client $counterClient: " hostname < /dev/tty
+    read -p "Enter port for client $counterClient: " port < /dev/tty
+
+    # Run program with input arguments
+    gnome-terminal --tab --title="Client $hostname $port" -- /bin/bash -c "cd Client/ && mvn exec:java -Dhostname=\"$hostname\" -Dport=\"$port\" -Dpath=\"$System\"; exec /bin/bash"
+done

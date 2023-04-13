@@ -39,24 +39,34 @@ $ mvn install
 
 In the directory ```$ <path to project>/HDS/```
 ```shell
-$ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of members in the system> -HostnameClient <localhost of client> -PortClient <port for client> -System <path to services.txt file>
+$ ./runService.sh -NByzantine <Number of byzantine members> -NService <Number of members in the system> -NCLient <number of clients> -System <path to services.txt file>
 ```
 
 - The script warns when the pretended number of byzantine members is not possible within the scope of the system membership described in the services.txt
 - For each process, apart from the leader, the shell waits for the input of the user to declare the behaviour of each member - B for byzantine and C for correct. (Note that it is expected from the user to declare the same amount of byzantine members as it stated in the -NByzantine parameter)
+- For each client, the shell waits for the input of the user to declare the hostname and the port sequentially of each member - String for hostname and Integer for port.
 - In case the shell prompts an error upon running the script try ```chmod +x runService.sh``` and re-run the script as previously stated.
 - This script runs the desired amount of Services, and also runs the Client module.
 
-### Suggested Parameters
+### Suggested Parameters for Run
 
 - `<NByzantine>`: 1
 - `<NService>`: 4
-- `<HostnameClient >`: localhost
-- `<PortClient  >`: 4321
+- `<NClient >`: 2
 - `<System>`: <absolute path of user>/HDS/services.txt
+- `<Byzantine behaviour>`: B for first prompt of input (server 1235)
+- `<Hostname of Client 1>`: localhost
+- `<Port of Client 1>`: 4321
+- `<Hostname of Client 2>`: localhost
+- `<Port of Client 2>`: 4322
 
 ```shell
-$ ./runService.sh -NByzantine 1 -NService 4 -HostnameClient localhost -PortClient 4321 -System /home/user/HDS/services.txt 
+$ ./runService.sh -NByzantine 1 -NService 4 -NClient 2 -System /home/user/HDS/services.txt 
+$ "For localhost 1235 enter C for correct behaviour or B for byzantine behaviour:" B
+$ "Enter hostname for client 1:" localhost
+$ "Enter port for client 1:" 4321
+$ "Enter hostname for client 2:" localhost 
+$ "Enter port for client 2:" 4322
 ```
 
 ## Clean
