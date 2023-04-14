@@ -76,7 +76,7 @@ $ "Enter port for client 2:" 4322
 $ mvn clean
 ```
 
-## To Run Tests (aprox time: 2min 02sec )
+## To Run Tests (aprox time: 5min 30sec )
 
 ### To Run Tests For The First Time
 
@@ -92,11 +92,9 @@ In the directory ```$ <path to project>/HDS/```
 $ mvn clean test
 ```
 
-- Test 1 noByzantineServers(): tests four correct members and a client sending one message
-- Test 2 oneByzantineServers(): tests three correct members, one byzantine member and a client sending one message
-- Test 3 twoByzantineServers(): tests five correct members, two byzantine members and a client sending one message
-- Test 4 twoMessageFourServersNoByzantine(): tests four correct members and a client sending two messages, one after another
-- Test 5 twoMessageFourServersOneByzantine(): test three correct members, one byzantine member and a client sending two messages, one after another
-- Test 6 twoClientsFourServersNoByzantine(): tests four correct members and two clients, each sending one message
-- Test 7 twoClientsFourServersOneByzantine(): tests three correct members, one byzantine member and two clients, each sending one message
+- Test 1 fourServersNoByzantine(): tests four correct members and two clients who create accounts, transfer from one to another and check their balance both through weak read and strong read. The test validate that the blockchain in the system is correct.
+- Test 2 strongBalanceByzantine(): tests three correct members, one byzantine member and a client who requests a correct strong read of their balance.
+- Test 3 readBalanceNotInBlockchain(): sanity test that checks that when the operations were not yet commited to the blockchain, upon requesting a check_balance the user is informed about it.
+- Test 4 weakBalanceByzantine(): tests three correct members, one byzantine and a client that first requests the weak read to the byzantine and he is informed to try again because the operation he requested might have been replied by a byzantine and then asks for a weak read to a correct server and the reply is valid and the valid signatures are indeed 3 (3 correct servers).
+- Test 5 weakReadCorrect(): tests if when a client asks for a weak read twice while doing transfers in the meanwhile, the first reply is always correct even if outdated and the second reply is also always correct even if outdated but always more recent or equal to the first one.
 - If by any chance tests are failing because they require more time to run the algorithm adjust the values inside Thread.sleep(<value>) in each test of the ServiceTest (under the directory /SEC/HDS/Service/src/test).

@@ -28,6 +28,7 @@ public class Client extends Thread{
     static class BalanceRead {
         private volatile String weakBalanceReply = "";
         private volatile String strongBalanceReply = "";
+        private volatile String weakSignatures = "";
     }
     private final BalanceRead balanceRead;
 
@@ -60,16 +61,17 @@ public class Client extends Thread{
 
     public String getWeakBalanceReply() { return this.balanceRead.weakBalanceReply; }
 
+    public String getWeakSignatures() { return this.balanceRead.weakSignatures; }
+
     public String getPublicKey() {
 
         String publicKeyString = Base64.getEncoder().encodeToString(this.apl.getPublicKey().getEncoded());
         return publicKeyString;
     }
 
-    /*public void setStrongBalanceReply(String inputValue) {
-        System.out.println("Setting strong balance reply to " + inputValue);
-        this.strongBalanceReply = inputValue;
-    }*/
+    public APL getApl(){
+        return this.apl;
+    }
 
     public void requestWeakRead() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
@@ -202,6 +204,9 @@ public class Client extends Thread{
         String command = jsonObject.getString("command");
         if (command.equals("ack")) acksReceived.put(messageID, jsonObject);
         else if (jsonObject.getString("command").equals("error_weak")) {
+            synchronized (this.balanceRead) {
+                this.balanceRead.weakBalanceReply = "There was an error with the request: " + jsonObject.getString("inputValue");
+            }
             System.out.println("There was an error with the request: " + jsonObject.getString("inputValue"));
         }
         else if (jsonObject.getString("command").equals("error")) {
@@ -210,6 +215,9 @@ public class Client extends Thread{
             String receivedHostname = jsonObject.getString("hostname");
             int receivedPort = jsonObject.getInt("port");
             if (this.quorumReplies(inputValue, digSignature, receivedHostname, receivedPort)) {
+                synchronized (this.balanceRead) {
+                    this.balanceRead.strongBalanceReply = "There was an error with the request: " + inputValue;
+                }
                 System.out.println("There was an error with the request: " + inputValue);
             }
         }
@@ -247,6 +255,11 @@ public class Client extends Thread{
             if (sigRemaining > 0 || byzantine) {
                 String receivedHostname = jsonObject.getString("hostname");
                 int receivedPort = jsonObject.getInt("port");
+                synchronized (this.balanceRead) {
+                    this.balanceRead.weakBalanceReply = "There was an error with your request for your weak balance. It is possible that the" +
+                            " request was answered by a byzantine server. The address of the server is "+ receivedHostname +
+                            " and the port is: " + receivedPort;
+                }
                 System.out.println("There was an error with your request for your weak balance. It is possible that the" +
                         " request was answered by a byzantine server. The address of the server is "+ receivedHostname +
                         " and the port is: " + receivedPort);
@@ -256,6 +269,7 @@ public class Client extends Thread{
                 int balance = weakStateJson.getInt(Base64.getEncoder().encodeToString(apl.getPublicKey().getEncoded()));
                 synchronized (this.balanceRead) {
                     this.balanceRead.weakBalanceReply = Integer.toString(balance);
+                    this.balanceRead.weakSignatures = Integer.toString(weakCheck.getInt("sigNum"));
                 }
                 System.out.println("Your weak balance, verified with " + weakCheck.getInt("sigNum")
                         + " signatures from servers, is : " + balance);
