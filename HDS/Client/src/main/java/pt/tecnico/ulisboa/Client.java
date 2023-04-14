@@ -25,8 +25,11 @@ public class Client extends Thread{
     private ConcurrentHashMap<String, JSONObject> acksReceived = new ConcurrentHashMap<>();
     private final Object quorumLock = new Object();
     //for test purposes
-    private String strongBalanceReply;
-    private String weakBalanceReply;
+    static class BalanceRead {
+        private volatile String weakBalanceReply = "";
+        private volatile String strongBalanceReply = "";
+    }
+    private final BalanceRead balanceRead;
 
     public Client(String hostname, int port, List<Entry<String,Integer>> processes, int byzantineProcesses) throws IOException,
             NoSuchAlgorithmException {
@@ -37,6 +40,7 @@ public class Client extends Thread{
         this.apl = new APL(hostname, port, acksReceived);
         this.broadcast = new Broadcast(processes, apl);
         this.messagesHandled = new java.util.ArrayList<>();
+        this.balanceRead = new BalanceRead();
     }
 
     public Client(Client client) {
@@ -49,13 +53,12 @@ public class Client extends Thread{
         this.apl = client.apl;
         this.broadcast = client.broadcast;
         this.acksReceived = client.acksReceived;
-        this.strongBalanceReply = client.strongBalanceReply;
-        this.weakBalanceReply = client.weakBalanceReply;
+        this.balanceRead = client.balanceRead;
     }
 
-    public String getStrongBalanceReply() { return strongBalanceReply; }
+    public String getStrongBalanceReply() { return this.balanceRead.strongBalanceReply; }
 
-    public String getWeakBalanceReply() { return this.weakBalanceReply; }
+    public String getWeakBalanceReply() { return this.balanceRead.weakBalanceReply; }
 
     public String getPublicKey() {
 
@@ -63,10 +66,10 @@ public class Client extends Thread{
         return publicKeyString;
     }
 
-    public void setStrongBalanceReply(String inputValue) {
+    /*public void setStrongBalanceReply(String inputValue) {
         System.out.println("Setting strong balance reply to " + inputValue);
         this.strongBalanceReply = inputValue;
-    }
+    }*/
 
     public void requestWeakRead() throws NoSuchPaddingException, IllegalBlockSizeException, IOException,
             NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
@@ -216,7 +219,9 @@ public class Client extends Thread{
             String receivedHostname = jsonObject.getString("hostname");
             int receivedPort = jsonObject.getInt("port");
             if (this.quorumReplies(inputValue, digSignature, receivedHostname, receivedPort)) {
-                this.setStrongBalanceReply(inputValue);
+                synchronized (this.balanceRead) {
+                    this.balanceRead.strongBalanceReply = inputValue;
+                }
                 System.out.println("Your Strong balance is : " + inputValue);
             }
         }
@@ -249,7 +254,9 @@ public class Client extends Thread{
             else {
                 JSONObject weakStateJson = new JSONObject(weakState);
                 int balance = weakStateJson.getInt(Base64.getEncoder().encodeToString(apl.getPublicKey().getEncoded()));
-                this.weakBalanceReply = Integer.toString(balance);
+                synchronized (this.balanceRead) {
+                    this.balanceRead.weakBalanceReply = Integer.toString(balance);
+                }
                 System.out.println("Your weak balance, verified with " + weakCheck.getInt("sigNum")
                         + " signatures from servers, is : " + balance);
             }
