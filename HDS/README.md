@@ -1,4 +1,4 @@
-# Highly Dependable Systems Ledger - Stage 1
+# Highly Dependable Systems Ledger - Stage 2
 
 ### Requirements
 
