@@ -37,7 +37,7 @@ public class ServiceTest {
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeyException{
         System.out.println("Running tests... might take a while");
-        //System.setOut(new PrintStream(new ByteArrayOutputStream()));
+        System.setOut(new PrintStream(new ByteArrayOutputStream()));
 
         Entry<Integer, List<Entry<String,Integer>>> fileSetupFourServers = Utility.readProcesses("../TestConfig/services_test1.txt");
         byzantineProcessesFourServers = fileSetupFourServers.getKey();
